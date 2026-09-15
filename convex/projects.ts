@@ -1,4 +1,5 @@
 import { query, mutation } from "./_generated/server";
+import { components } from "./_generated/api";
 import { v } from "convex/values";
 
 export const list = query({
@@ -47,22 +48,20 @@ export const changeScope = mutation({
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .collect();
 
-    // a quote survives only if it already covered the new scope
-    const affected = [];
-    const survivors = [];
+    // The app knows the job changed. Only the component knows which
+    // prices that actually kills.
+    let invalidated = [];
+    let survived = [];
     for (const job of jobs) {
-      const quotes = await ctx.db
-        .query("quotes")
-        .withIndex("by_job", (q) => q.eq("jobId", job._id))
-        .collect();
-      for (const quote of quotes) {
-        const tags = quote.scopeTags ?? [];
-        if (tags.includes(newTag)) survivors.push(quote);
-        else if (!quote.stale) affected.push(quote);
-      }
+      const res = await ctx.runMutation(
+        components.quoteEngine.quotes.invalidate,
+        { jobKey: String(job._id), newTag, reason: label }
+      );
+      invalidated = invalidated.concat(res.invalidated);
+      survived = survived.concat(res.survived);
     }
 
-    if (affected.length === 0) {
+    if (invalidated.length === 0) {
       return { revision: project.revision, staleCount: 0, noop: true };
     }
 
@@ -81,21 +80,6 @@ export const changeScope = mutation({
       createdAt: Date.now(),
     });
 
-    for (const quote of affected) {
-      await ctx.db.patch(quote._id, { stale: true, staleReason: label });
-    }
-
-    const names = [];
-    for (const quote of affected) {
-      const firm = await ctx.db.get(quote.firmId);
-      if (firm) names.push(firm.name);
-    }
-    const survivorNames = [];
-    for (const quote of survivors) {
-      const firm = await ctx.db.get(quote.firmId);
-      if (firm) survivorNames.push(firm.name);
-    }
-
     await ctx.db.insert("events", {
       projectId: args.projectId,
       type: "scope_changed",
@@ -107,17 +91,17 @@ export const changeScope = mutation({
     await ctx.db.insert("events", {
       projectId: args.projectId,
       type: "quote_stale",
-      summary: `${affected.length} quote${
-        affected.length === 1 ? "" : "s"
-      } priced the old job and no longer apply: ${names.join(", ")}`,
+      summary: `${invalidated.length} price${
+        invalidated.length === 1 ? "" : "s"
+      } no longer apply: ${invalidated.join(", ")}`,
       createdAt: Date.now() + 1,
     });
 
-    if (survivorNames.length) {
+    if (survived.length) {
       await ctx.db.insert("events", {
         projectId: args.projectId,
         type: "quote_valid",
-        summary: `${survivorNames.join(", ")} already priced this - still valid`,
+        summary: `${survived.join(", ")} already priced this - still valid`,
         createdAt: Date.now() + 2,
       });
     }
@@ -125,11 +109,11 @@ export const changeScope = mutation({
     await ctx.db.insert("events", {
       projectId: args.projectId,
       type: "reprice_requested",
-      summary: `Asked ${names.join(", ")} whether their price still holds`,
+      summary: `Asked ${invalidated.join(", ")} whether their price still holds`,
       createdAt: Date.now() + 3,
     });
 
-    return { revision: next, staleCount: affected.length, names, survivorNames };
+    return { revision: next, staleCount: invalidated.length, invalidated, survived };
   },
 });
 
@@ -140,18 +124,13 @@ export const resetStale = mutation({
       .query("jobs")
       .withIndex("by_project", (q) => q.eq("projectId", projectId))
       .collect();
-    let n = 0;
+    let restored = 0;
     for (const job of jobs) {
-      const quotes = await ctx.db
-        .query("quotes")
-        .withIndex("by_job", (q) => q.eq("jobId", job._id))
-        .collect();
-      for (const quote of quotes) {
-        if (quote.stale) {
-          await ctx.db.patch(quote._id, { stale: false, staleReason: undefined });
-          n++;
-        }
-      }
+      const r = await ctx.runMutation(
+        components.quoteEngine.quotes.revalidateAll,
+        { jobKey: String(job._id) }
+      );
+      restored += r.restored;
     }
     await ctx.db.patch(projectId, {
       revision: 1,
@@ -163,6 +142,6 @@ export const resetStale = mutation({
       .withIndex("by_project", (q) => q.eq("projectId", projectId))
       .collect();
     for (const a of olds) await ctx.db.delete(a._id);
-    return { restored: n };
+    return { restored };
   },
 });

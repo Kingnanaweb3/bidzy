@@ -1,15 +1,18 @@
 import { mutation } from "./_generated/server";
+import { components } from "./_generated/api";
 
 export const demo = mutation({
   args: {},
   handler: async (ctx) => {
     for (const t of [
-      "quotes", "invitations", "firms", "jobs", "events",
+      "invitations", "firms", "jobs", "events",
       "addenda", "monitors", "messages", "projects",
     ]) {
       const rows = await ctx.db.query(t).collect();
       for (const r of rows) await ctx.db.delete(r._id);
     }
+
+    await ctx.runMutation(components.quoteEngine.quotes.clearAll, {});
 
     const projectId = await ctx.db.insert("projects", {
       name: "Roof replacement",
@@ -51,8 +54,8 @@ export const demo = mutation({
     const DAY = 86400000;
 
     // Apex - complete, honest, asphalt
-    await ctx.db.insert("quotes", {
-      jobId, firmId: firmIds[0], total: 14200, currency: "USD",
+    await ctx.runMutation(components.quoteEngine.quotes.record, {
+      jobKey: String(jobId), partyKey: String(firmIds[0]), partyName: "Apex Roofing", total: 14200, currency: "USD",
       lineItems: [
         { label: "Tear-off and disposal", amount: 2400 },
         { label: "Asphalt shingle, supply", amount: 6100 },
@@ -61,41 +64,32 @@ export const demo = mutation({
       ],
       inclusions: ["Removal and disposal", "Delivery", "Skip hire", "Sales tax", "5-year workmanship warranty"],
       exclusions: ["Gutter replacement"],
-      scopeTags: ["asphalt-shingle"],
-      revision: 1, stale: false, needsReview: false,
-      receivedAt: Date.now() - 3 * DAY,
-    });
+      scopeTags: ["asphalt-shingle"], needsReview: false,});
 
     // Crown - cheapest on paper, hides the expensive parts
-    await ctx.db.insert("quotes", {
-      jobId, firmId: firmIds[1], total: 11900, currency: "USD",
+    await ctx.runMutation(components.quoteEngine.quotes.record, {
+      jobKey: String(jobId), partyKey: String(firmIds[1]), partyName: "Crown Roof Systems", total: 11900, currency: "USD",
       lineItems: [
         { label: "Asphalt shingle, supply and fit", amount: 10700 },
         { label: "Labour", amount: 1200 },
       ],
       inclusions: ["Labour"],
       exclusions: ["Removal and disposal", "Delivery", "Skip hire", "Sales tax", "Gutter replacement"],
-      scopeTags: ["asphalt-shingle"],
-      revision: 1, stale: false, needsReview: false,
-      receivedAt: Date.now() - 2 * DAY,
-    });
+      scopeTags: ["asphalt-shingle"], needsReview: false,});
 
     // PrimeBuild - lump sum, vague, expired licence
-    await ctx.db.insert("quotes", {
-      jobId, firmId: firmIds[2], total: 13450, currency: "USD",
+    await ctx.runMutation(components.quoteEngine.quotes.record, {
+      jobKey: String(jobId), partyKey: String(firmIds[2]), partyName: "PrimeBuild", total: 13450, currency: "USD",
       lineItems: [
         { label: "Complete roof replacement", amount: 13450, note: "Lump sum, no breakdown given" },
       ],
       inclusions: ["Removal and disposal", "Delivery", "Sales tax"],
       exclusions: ["Skip hire", "Gutter replacement"],
-      scopeTags: ["asphalt-shingle"],
-      revision: 1, stale: false, needsReview: true,
-      receivedAt: Date.now() - DAY,
-    });
+      scopeTags: ["asphalt-shingle"], needsReview: true,});
 
     // Skyline - quoted slate as well. Survives the material change.
-    await ctx.db.insert("quotes", {
-      jobId, firmId: firmIds[3], total: 15800, currency: "USD",
+    await ctx.runMutation(components.quoteEngine.quotes.record, {
+      jobKey: String(jobId), partyKey: String(firmIds[3]), partyName: "Skyline Exteriors", total: 15800, currency: "USD",
       lineItems: [
         { label: "Tear-off and disposal", amount: 2600 },
         { label: "Slate, supply", amount: 7400 },
@@ -105,10 +99,7 @@ export const demo = mutation({
       inclusions: ["Removal and disposal", "Delivery", "Skip hire", "Sales tax", "10-year workmanship warranty"],
       exclusions: ["Gutter replacement"],
       // priced both materials, so a switch to slate does not invalidate it
-      scopeTags: ["asphalt-shingle", "slate"],
-      revision: 1, stale: false, needsReview: false,
-      receivedAt: Date.now() - 7200000,
-    });
+      scopeTags: ["asphalt-shingle", "slate"], needsReview: false,});
 
     await ctx.db.insert("events", {
       projectId, jobId, type: "invite_sent",

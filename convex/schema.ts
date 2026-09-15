@@ -54,33 +54,8 @@ export default defineSchema({
     .index("by_job", ["jobId"])
     .index("by_firm", ["firmId"]),
 
-  quotes: defineTable({
-    jobId: v.id("jobs"),
-    firmId: v.id("firms"),
-    invitationId: v.optional(v.id("invitations")),
-    total: v.optional(v.number()),
-    currency: v.string(),
-    lineItems: v.array(
-      v.object({
-        label: v.string(),
-        amount: v.optional(v.number()),
-        note: v.optional(v.string()),
-      })
-    ),
-    exclusions: v.array(v.string()),
-    inclusions: v.array(v.string()),
-    // which parts of the design this quote depends on
-    scopeTags: v.optional(v.array(v.string())),
-    revision: v.number(),
-    stale: v.boolean(),
-    staleReason: v.optional(v.string()),
-    sourceUrl: v.optional(v.string()),
-    rawText: v.optional(v.string()),
-    needsReview: v.boolean(),
-    receivedAt: v.number(),
-  })
-    .index("by_job", ["jobId"])
-    .index("by_firm", ["firmId"]),
+  // quotes now live in the quoteEngine component
+
 
   messages: defineTable({
     jobId: v.id("jobs"),

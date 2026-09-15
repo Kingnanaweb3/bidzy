@@ -1,4 +1,5 @@
-import { query, mutation } from "./_generated/server";
+import { mutation } from "./_generated/server";
+import { components } from "./_generated/api";
 import { v } from "convex/values";
 
 const lineItem = v.object({
@@ -7,82 +8,66 @@ const lineItem = v.object({
   note: v.optional(v.string()),
 });
 
+// The app never writes quote data directly. It hands what it received to
+// the component, which decides what it means.
 export const record = mutation({
   args: {
     jobId: v.id("jobs"),
     firmId: v.id("firms"),
-    invitationId: v.optional(v.id("invitations")),
     total: v.optional(v.number()),
-    currency: v.optional(v.string()),
     lineItems: v.optional(v.array(lineItem)),
-    exclusions: v.optional(v.array(v.string())),
     inclusions: v.optional(v.array(v.string())),
-    sourceUrl: v.optional(v.string()),
-    rawText: v.optional(v.string()),
+    exclusions: v.optional(v.array(v.string())),
+    scopeTags: v.optional(v.array(v.string())),
     needsReview: v.optional(v.boolean()),
+    rawText: v.optional(v.string()),
+    sourceUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const job = await ctx.db.get(args.jobId);
-    if (!job) throw new Error("no job");
-    const project = await ctx.db.get(job.projectId);
     const firm = await ctx.db.get(args.firmId);
+    const job = await ctx.db.get(args.jobId);
+    if (!firm || !job) throw new Error("unknown job or company");
 
-    const quoteId = await ctx.db.insert("quotes", {
-      jobId: args.jobId,
-      firmId: args.firmId,
-      invitationId: args.invitationId,
+    await ctx.runMutation(components.quoteEngine.quotes.record, {
+      jobKey: String(args.jobId),
+      partyKey: String(args.firmId),
+      partyName: firm.name,
       total: args.total,
-      currency: args.currency ?? "USD",
-      lineItems: args.lineItems ?? [],
-      exclusions: args.exclusions ?? [],
-      inclusions: args.inclusions ?? [],
-      revision: project?.revision ?? 1,
-      stale: false,
-      sourceUrl: args.sourceUrl,
+      lineItems: args.lineItems,
+      inclusions: args.inclusions,
+      exclusions: args.exclusions,
+      scopeTags: args.scopeTags,
+      needsReview: args.needsReview,
       rawText: args.rawText,
-      needsReview: args.needsReview ?? false,
-      receivedAt: Date.now(),
+      sourceUrl: args.sourceUrl,
     });
 
-    if (args.invitationId) {
-      await ctx.db.patch(args.invitationId, { status: "quoted" });
-    }
+    const invs = await ctx.db
+      .query("invitations")
+      .withIndex("by_job", (q) => q.eq("jobId", args.jobId))
+      .collect();
+    const inv = invs.find((i) => i.firmId === args.firmId);
+    if (inv) await ctx.db.patch(inv._id, { status: "quoted" });
 
     await ctx.db.insert("events", {
       projectId: job.projectId,
       jobId: args.jobId,
       type: "quote_parsed",
-      summary: `${firm?.name ?? "A firm"} quoted ${
-        args.total != null ? "$" + args.total.toLocaleString() : "an unpriced bid"
+      summary: `${firm.name} sent a price${
+        args.total != null ? ` of $${args.total.toLocaleString()}` : ""
       }`,
-      meta: { quoteId },
       createdAt: Date.now(),
     });
-
-    return quoteId;
   },
 });
 
 export const confirm = mutation({
   args: {
-    quoteId: v.id("quotes"),
+    quoteId: v.string(),
     total: v.optional(v.number()),
     exclusions: v.optional(v.array(v.string())),
     lineItems: v.optional(v.array(lineItem)),
   },
-  handler: async (ctx, { quoteId, ...patch }) => {
-    const clean = Object.fromEntries(
-      Object.entries(patch).filter(([, val]) => val !== undefined)
-    );
-    await ctx.db.patch(quoteId, { ...clean, needsReview: false });
-  },
-});
-
-export const listByJob = query({
-  args: { jobId: v.id("jobs") },
-  handler: async (ctx, { jobId }) =>
-    ctx.db
-      .query("quotes")
-      .withIndex("by_job", (q) => q.eq("jobId", jobId))
-      .collect(),
+  handler: async (ctx, args) =>
+    ctx.runMutation(components.quoteEngine.quotes.confirm, args),
 });

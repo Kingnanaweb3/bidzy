@@ -1,5 +1,5 @@
 import { internalMutation, mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internal, components } from "./_generated/api";
 import { v } from "convex/values";
 
 export const threadsByJob = query({
@@ -156,38 +156,19 @@ export const handleInbound = internalMutation({
     const parsed = extractQuote(args.text);
     if (parsed.total == null) return { stored: true, matched: true, quoted: false };
 
-    const existing = await ctx.db
-      .query("quotes")
-      .withIndex("by_job", (q) => q.eq("jobId", jobId))
-      .collect();
-    const prior = existing.find((q) => q.firmId === firm._id);
-
-    const project = await ctx.db.get(job.projectId);
-    const payload = {
+    await ctx.runMutation(components.quoteEngine.quotes.record, {
+      jobKey: String(jobId),
+      partyKey: String(firm._id),
+      partyName: firm.name,
       total: parsed.total,
       lineItems: parsed.lineItems,
-      exclusions: parsed.exclusions,
       inclusions: parsed.inclusions,
-      rawText: args.text.slice(0, 4000),
+      exclusions: parsed.exclusions,
+      scopeTags: ["asphalt-shingle"],
       needsReview: parsed.needsReview,
-      revision: project?.revision ?? 1,
-      stale: false,
-      staleReason: undefined,
-      receivedAt: Date.now(),
-    };
+      rawText: args.text.slice(0, 4000),
+    });
 
-    if (prior) {
-      await ctx.db.patch(prior._id, payload);
-    } else {
-      await ctx.db.insert("quotes", {
-        jobId,
-        firmId: firm._id,
-        invitationId: inv?._id,
-        currency: "USD",
-        scopeTags: ["glazing-spec", "exterior-windows"],
-        ...payload,
-      });
-    }
     if (inv) await ctx.db.patch(inv._id, { status: "quoted" });
 
     await ctx.db.insert("events", {

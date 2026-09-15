@@ -3,196 +3,122 @@ import { mutation } from "./_generated/server";
 export const demo = mutation({
   args: {},
   handler: async (ctx) => {
-    // wipe first so re-seeding is safe
     for (const t of [
-      "quotes",
-      "invitations",
-      "firms",
-      "jobs",
-      "events",
-      "addenda",
-      "monitors",
-      "messages",
-      "projects",
+      "quotes", "invitations", "firms", "jobs", "events",
+      "addenda", "monitors", "messages", "projects",
     ]) {
       const rows = await ctx.db.query(t).collect();
       for (const r of rows) await ctx.db.delete(r._id);
     }
 
     const projectId = await ctx.db.insert("projects", {
-      name: "Riverside Medical Clinic",
-      client: "Riverside Health Partners",
+      name: "Roof replacement",
+      client: "42 Marlow Street",
+      scope: ["asphalt-shingle"],
+      scopeNote: "Asphalt shingle, full tear-off and replacement",
       revision: 1,
       createdAt: Date.now(),
     });
 
     const jobId = await ctx.db.insert("jobs", {
       projectId,
-      name: "Windows & Glazing",
-      trade: "glazing",
+      name: "Roof replacement",
+      trade: "roofing",
       description:
-        "Supply and install all exterior windows and entrance glazing.",
+        "Full tear-off and replacement of the roof on a 3-bedroom house. Materials, labour, removal and disposal.",
       revision: 1,
       createdAt: Date.now(),
     });
 
     const firms = [
-      {
-        name: "Halcyon Glass Co.",
-        email: "halcyon@example.com",
-        trade: "glazing",
-        licenceStatus: "valid",
-      },
-      {
-        name: "Northgate Glazing",
-        email: "northgate@example.com",
-        trade: "glazing",
-        licenceStatus: "valid",
-      },
-      {
-        name: "Pearl City Windows",
-        email: "pearl@example.com",
-        trade: "glazing",
-        licenceStatus: "expired",
-      },
-      {
-        name: "Vantage Facades",
-        email: "vantage@example.com",
-        trade: "glazing",
-        licenceStatus: "valid",
-      },
+      { name: "Apex Roofing", email: "apex@example.com", trade: "roofing", licenceStatus: "valid" },
+      { name: "Crown Roof Systems", email: "crown@example.com", trade: "roofing", licenceStatus: "valid" },
+      { name: "PrimeBuild", email: "prime@example.com", trade: "roofing", licenceStatus: "expired" },
+      { name: "Skyline Exteriors", email: "skyline@example.com", trade: "roofing", licenceStatus: "valid" },
     ];
 
     const firmIds = [];
     for (const f of firms) {
-      firmIds.push(
-        await ctx.db.insert("firms", { ...f, licenceCheckedAt: Date.now() })
-      );
+      firmIds.push(await ctx.db.insert("firms", { ...f, licenceCheckedAt: Date.now() }));
     }
 
     for (const firmId of firmIds) {
       await ctx.db.insert("invitations", {
-        jobId,
-        firmId,
-        status: "sent",
-        sentAt: Date.now(),
-        chaseCount: 0,
+        jobId, firmId, status: "sent", sentAt: Date.now(), chaseCount: 0,
       });
     }
 
     const DAY = 86400000;
 
-    // Halcyon - honest, complete, priced the OLD spec
+    // Apex - complete, honest, asphalt
     await ctx.db.insert("quotes", {
-      jobId,
-      firmId: firmIds[0],
-      total: 180400,
-      currency: "USD",
+      jobId, firmId: firmIds[0], total: 14200, currency: "USD",
       lineItems: [
-        { label: "Exterior windows (42 units)", amount: 131000 },
-        { label: "Entrance glazing", amount: 28400 },
-        { label: "Fireproofing to openings", amount: 12000 },
-        { label: "Delivery & crane hire", amount: 9000 },
+        { label: "Tear-off and disposal", amount: 2400 },
+        { label: "Asphalt shingle, supply", amount: 6100 },
+        { label: "Labour", amount: 4500 },
+        { label: "Delivery and skip hire", amount: 1200 },
       ],
-      inclusions: ["Fireproofing", "Delivery", "Crane hire", "Sales tax"],
-      exclusions: ["Night work", "Temporary protection"],
-      scopeTags: ["glazing-spec", "exterior-windows"],
-      revision: 1,
-      stale: false,
-      needsReview: false,
+      inclusions: ["Removal and disposal", "Delivery", "Skip hire", "Sales tax", "5-year workmanship warranty"],
+      exclusions: ["Gutter replacement"],
+      scopeTags: ["asphalt-shingle"],
+      revision: 1, stale: false, needsReview: false,
       receivedAt: Date.now() - 3 * DAY,
     });
 
-    // Northgate - cheapest on paper, excludes the expensive bits. OLD spec.
+    // Crown - cheapest on paper, hides the expensive parts
     await ctx.db.insert("quotes", {
-      jobId,
-      firmId: firmIds[1],
-      total: 168900,
-      currency: "USD",
+      jobId, firmId: firmIds[1], total: 11900, currency: "USD",
       lineItems: [
-        { label: "Exterior windows (42 units)", amount: 133500 },
-        { label: "Entrance glazing", amount: 26400 },
-        { label: "Delivery", amount: 9000 },
+        { label: "Asphalt shingle, supply and fit", amount: 10700 },
+        { label: "Labour", amount: 1200 },
       ],
-      inclusions: ["Delivery"],
-      exclusions: [
-        "Fireproofing",
-        "Crane hire",
-        "Sales tax",
-        "Night work",
-        "Temporary protection",
-      ],
-      scopeTags: ["glazing-spec", "exterior-windows"],
-      revision: 1,
-      stale: false,
-      needsReview: false,
+      inclusions: ["Labour"],
+      exclusions: ["Removal and disposal", "Delivery", "Skip hire", "Sales tax", "Gutter replacement"],
+      scopeTags: ["asphalt-shingle"],
+      revision: 1, stale: false, needsReview: false,
       receivedAt: Date.now() - 2 * DAY,
     });
 
-    // Pearl City - lump sum, unclear, expired licence. OLD spec.
+    // PrimeBuild - lump sum, vague, expired licence
     await ctx.db.insert("quotes", {
-      jobId,
-      firmId: firmIds[2],
-      total: 176250,
-      currency: "USD",
+      jobId, firmId: firmIds[2], total: 13450, currency: "USD",
       lineItems: [
-        {
-          label: "Windows & glazing, all-in",
-          amount: 176250,
-          note: "Lump sum, no breakdown given",
-        },
+        { label: "Complete roof replacement", amount: 13450, note: "Lump sum, no breakdown given" },
       ],
-      inclusions: ["Delivery", "Sales tax", "Crane hire", "Temporary protection"],
-      exclusions: ["Fireproofing", "Night work"],
-      scopeTags: ["glazing-spec", "exterior-windows"],
-      revision: 1,
-      stale: false,
-      needsReview: true,
+      inclusions: ["Removal and disposal", "Delivery", "Sales tax"],
+      exclusions: ["Skip hire", "Gutter replacement"],
+      scopeTags: ["asphalt-shingle"],
+      revision: 1, stale: false, needsReview: true,
       receivedAt: Date.now() - DAY,
     });
 
-    // Vantage - entrance glazing only, does NOT depend on the exterior spec.
-    // Survives the addendum. This is the point.
+    // Skyline - quoted slate as well. Survives the material change.
     await ctx.db.insert("quotes", {
-      jobId,
-      firmId: firmIds[3],
-      total: 174600,
-      currency: "USD",
+      jobId, firmId: firmIds[3], total: 15800, currency: "USD",
       lineItems: [
-        { label: "Exterior windows (42 units)", amount: 129200 },
-        { label: "Entrance glazing", amount: 27400 },
-        { label: "Fireproofing to openings", amount: 10500 },
-        { label: "Delivery & crane hire", amount: 7500 },
+        { label: "Tear-off and disposal", amount: 2600 },
+        { label: "Slate, supply", amount: 7400 },
+        { label: "Labour", amount: 4600 },
+        { label: "Delivery and skip hire", amount: 1200 },
       ],
-      inclusions: [
-        "Fireproofing",
-        "Delivery",
-        "Crane hire",
-        "Sales tax",
-        "Temporary protection",
-      ],
-      exclusions: ["Night work"],
-      // priced the updated spec already - quoted late, off the current drawings
-      scopeTags: ["exterior-windows"],
-      revision: 1,
-      stale: false,
-      needsReview: false,
+      inclusions: ["Removal and disposal", "Delivery", "Skip hire", "Sales tax", "10-year workmanship warranty"],
+      exclusions: ["Gutter replacement"],
+      // priced both materials, so a switch to slate does not invalidate it
+      scopeTags: ["asphalt-shingle", "slate"],
+      revision: 1, stale: false, needsReview: false,
       receivedAt: Date.now() - 7200000,
     });
 
     await ctx.db.insert("events", {
-      projectId,
-      jobId,
-      type: "invite_sent",
-      summary: "Invitations sent to 4 glazing firms",
+      projectId, jobId, type: "invite_sent",
+      summary: "Asked 4 roofing companies for a price",
       createdAt: Date.now() - 5 * DAY,
     });
 
     await ctx.db.insert("events", {
-      projectId,
-      jobId,
-      type: "quote_parsed",
-      summary: "Vantage Facades quoted $174,600 - priced off the current drawings",
+      projectId, jobId, type: "quote_parsed",
+      summary: "Skyline Exteriors quoted for slate as well as asphalt",
       createdAt: Date.now() - 7100000,
     });
 

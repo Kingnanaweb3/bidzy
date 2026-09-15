@@ -25,20 +25,19 @@ export default function Board({ jobId }) {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">{job.name}</h1>
         <p className="text-sm text-stone-500 mt-1">
-          {quotedCount} of {invitedCount} firms have priced this job
+          {quotedCount} of {invitedCount} companies have sent a price
         </p>
       </div>
 
       {lowestMoved && (
         <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
           <p className="text-sm text-amber-900">
-            The design changed and {staleCount} quote
+            You changed the job and {staleCount} quote
             {staleCount === 1 ? "" : "s"} no longer apply. The best valid price is
             now <strong>{money(lowest)}</strong>, up from {money(previousLowest)}.
           </p>
           <p className="text-xs text-amber-700 mt-1">
-            Affected firms have been asked to confirm whether their price still
-            holds.
+            We've emailed them to ask whether their price still holds.
           </p>
         </div>
       )}
@@ -48,7 +47,7 @@ export default function Board({ jobId }) {
           <thead>
             <tr className="border-b border-stone-200">
               <th className="text-left font-medium text-stone-500 px-5 py-3 w-[180px]">
-                Firm
+                Company
               </th>
               {rows.map((r) => (
                 <th
@@ -107,7 +106,7 @@ export default function Board({ jobId }) {
                     )}
                     {r.quote?.stale && (
                       <div className="text-[10px] text-amber-700 mt-1 leading-tight">
-                        Priced against the old design
+                        Priced the old job
                       </div>
                     )}
                     {r.quote?.needsReview && !r.quote?.stale && (
@@ -125,7 +124,7 @@ export default function Board({ jobId }) {
                 colSpan={rows.length + 1}
                 className="px-5 py-2 text-[11px] uppercase tracking-widest text-stone-400"
               >
-                What each firm will not do
+                What each price does not cover
               </td>
             </tr>
 
@@ -164,7 +163,7 @@ export default function Board({ jobId }) {
       </div>
 
       <p className="text-xs text-stone-400 mt-3">
-        A lower price with more exclusions is usually the more expensive bid.
+        The cheapest price is rarely the cheapest job. Check what it leaves out.
       </p>
     </section>
   );

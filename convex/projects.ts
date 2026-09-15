@@ -12,11 +12,7 @@ export const get = query({
 });
 
 export const create = mutation({
-  args: {
-    name: v.string(),
-    client: v.optional(v.string()),
-    planUrl: v.optional(v.string()),
-  },
+  args: { name: v.string(), client: v.optional(v.string()) },
   handler: async (ctx, args) =>
     ctx.db.insert("projects", { ...args, revision: 1, createdAt: Date.now() }),
 });
@@ -31,29 +27,29 @@ export const addenda = query({
       .collect(),
 });
 
-// Publish a design change. Only quotes that depend on the changed part
-// of the design go stale — everything else stays live and gets re-ranked.
-export const publishAddendum = mutation({
+// The homeowner changes what they want. Quotes that priced the old
+// thing are no longer valid; quotes that covered the new one survive.
+export const changeScope = mutation({
   args: {
     projectId: v.id("projects"),
-    title: v.optional(v.string()),
-    affectsTags: v.optional(v.array(v.string())),
+    newTag: v.optional(v.string()),
+    label: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const project = await ctx.db.get(args.projectId);
     if (!project) throw new Error("no project");
 
-    const affectsTags = args.affectsTags ?? ["glazing-spec"];
-    const title =
-      args.title ?? "Addendum 3 - exterior glazing spec changed to low-E triple";
+    const newTag = args.newTag ?? "slate";
+    const label = args.label ?? "Changed roofing material to slate";
 
-    // idempotent: if every dependent quote is already stale, do nothing
     const jobs = await ctx.db
       .query("jobs")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .collect();
 
+    // a quote survives only if it already covered the new scope
     const affected = [];
+    const survivors = [];
     for (const job of jobs) {
       const quotes = await ctx.db
         .query("quotes")
@@ -61,8 +57,8 @@ export const publishAddendum = mutation({
         .collect();
       for (const quote of quotes) {
         const tags = quote.scopeTags ?? [];
-        const touched = tags.some((t) => affectsTags.includes(t));
-        if (touched && !quote.stale) affected.push(quote);
+        if (tags.includes(newTag)) survivors.push(quote);
+        else if (!quote.stale) affected.push(quote);
       }
     }
 
@@ -71,34 +67,40 @@ export const publishAddendum = mutation({
     }
 
     const next = project.revision + 1;
-    await ctx.db.patch(args.projectId, { revision: next });
+    await ctx.db.patch(args.projectId, {
+      revision: next,
+      scope: [newTag],
+      scopeNote: label,
+    });
 
     await ctx.db.insert("addenda", {
       projectId: args.projectId,
       revision: next,
-      title,
-      affectsTags,
+      title: label,
+      affectsTags: [newTag],
       createdAt: Date.now(),
     });
 
     for (const quote of affected) {
-      await ctx.db.patch(quote._id, {
-        stale: true,
-        staleReason: title,
-      });
+      await ctx.db.patch(quote._id, { stale: true, staleReason: label });
     }
 
-    const firmNames = [];
+    const names = [];
     for (const quote of affected) {
       const firm = await ctx.db.get(quote.firmId);
-      if (firm) firmNames.push(firm.name);
+      if (firm) names.push(firm.name);
+    }
+    const survivorNames = [];
+    for (const quote of survivors) {
+      const firm = await ctx.db.get(quote.firmId);
+      if (firm) survivorNames.push(firm.name);
     }
 
     await ctx.db.insert("events", {
       projectId: args.projectId,
-      type: "design_changed",
-      summary: title,
-      meta: { revision: next, affectsTags },
+      type: "scope_changed",
+      summary: `You changed the job: ${label}`,
+      meta: { revision: next, newTag },
       createdAt: Date.now(),
     });
 
@@ -107,23 +109,30 @@ export const publishAddendum = mutation({
       type: "quote_stale",
       summary: `${affected.length} quote${
         affected.length === 1 ? "" : "s"
-      } now priced against the old design: ${firmNames.join(", ")}`,
-      meta: { count: affected.length },
+      } priced the old job and no longer apply: ${names.join(", ")}`,
       createdAt: Date.now() + 1,
     });
+
+    if (survivorNames.length) {
+      await ctx.db.insert("events", {
+        projectId: args.projectId,
+        type: "quote_valid",
+        summary: `${survivorNames.join(", ")} already priced this - still valid`,
+        createdAt: Date.now() + 2,
+      });
+    }
 
     await ctx.db.insert("events", {
       projectId: args.projectId,
       type: "reprice_requested",
-      summary: `Asked ${firmNames.join(", ")} to confirm whether their price still holds`,
-      createdAt: Date.now() + 2,
+      summary: `Asked ${names.join(", ")} whether their price still holds`,
+      createdAt: Date.now() + 3,
     });
 
-    return { revision: next, staleCount: affected.length, firmNames };
+    return { revision: next, staleCount: affected.length, names, survivorNames };
   },
 });
 
-// kept for convenience / reset during the demo
 export const resetStale = mutation({
   args: { projectId: v.id("projects") },
   handler: async (ctx, { projectId }) => {
@@ -144,7 +153,11 @@ export const resetStale = mutation({
         }
       }
     }
-    await ctx.db.patch(projectId, { revision: 1 });
+    await ctx.db.patch(projectId, {
+      revision: 1,
+      scope: ["asphalt-shingle"],
+      scopeNote: "Asphalt shingle, full tear-off and replacement",
+    });
     const olds = await ctx.db
       .query("addenda")
       .withIndex("by_project", (q) => q.eq("projectId", projectId))

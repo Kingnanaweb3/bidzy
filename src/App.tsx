@@ -3,6 +3,7 @@ import { api } from "../convex/_generated/api";
 import Board from "./components/Board";
 import Feed from "./components/Feed";
 import Header from "./components/Header";
+import Inbox from "./components/Inbox";
 
 export default function App() {
   const projects = useQuery(api.projects.list);
@@ -21,8 +22,17 @@ export default function App() {
     <div className="min-h-screen">
       <Header project={project} />
       <main className="mx-auto max-w-[1400px] px-6 py-8 grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-8">
-        <div>{job ? <Board jobId={job._id} /> : <Splash text="No job yet" />}</div>
-        {project && <Feed projectId={project._id} />}
+        <div>
+          {job ? (
+            <>
+              <Board jobId={job._id} />
+              <Inbox job={job} jobId={job._id} />
+            </>
+          ) : (
+            <Splash text="No job yet" />
+          )}
+        </div>
+        <Feed projectId={project._id} />
       </main>
     </div>
   );

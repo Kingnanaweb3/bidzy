@@ -5,6 +5,8 @@ export default defineSchema({
   projects: defineTable({
     name: v.string(),
     client: v.optional(v.string()),
+    scope: v.optional(v.array(v.string())),
+    scopeNote: v.optional(v.string()),
     dueAt: v.optional(v.number()),
     planUrl: v.optional(v.string()),
     revision: v.number(),

@@ -1,3 +1,8 @@
+#!/bin/bash
+set -e
+npm i --save-dev @types/node --silent
+
+cat > tsconfig.json << 'EOF'
 {
   "compilerOptions": {
     "target": "ES2020",
@@ -17,3 +22,13 @@
   },
   "include": ["src", "convex"]
 }
+EOF
+
+python3 - << 'PY'
+import json
+p = "package.json"
+d = json.load(open(p))
+d["scripts"]["build"] = "vite build"
+json.dump(d, open(p, "w"), indent=2)
+print("build script now: vite build")
+PY

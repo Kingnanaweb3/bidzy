@@ -1,3 +1,9 @@
+#!/bin/bash
+# Surface comparable cost on the board.
+set -e
+[ -d convex/quoteEngine ] || { echo "Run from the bidzy project root."; exit 1; }
+
+cat > src/components/Board.tsx << 'EOF'
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
@@ -217,3 +223,6 @@ function Status({ status, stale }) {
     </span>
   );
 }
+EOF
+
+echo "board updated"

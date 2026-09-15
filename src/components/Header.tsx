@@ -1,11 +1,17 @@
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useState } from "react";
 
 export default function Header({ project }) {
-  const bump = useMutation(api.projects.bumpRevision);
+  const publish = useMutation(api.projects.publishAddendum);
+  const reset = useMutation(api.projects.resetStale);
+  const addenda = useQuery(api.projects.addenda, { projectId: project._id });
+  const [busy, setBusy] = useState(false);
+
+  const published = (addenda?.length ?? 0) > 0;
 
   return (
-    <header className="border-b border-stone-200 bg-white">
+    <header className="border-b border-stone-200 bg-white sticky top-0 z-10">
       <div className="mx-auto max-w-[1400px] px-6 py-4 flex items-center justify-between">
         <div className="flex items-baseline gap-4">
           <span className="text-xl font-bold tracking-tight">Bidzy</span>
@@ -15,17 +21,33 @@ export default function Header({ project }) {
             Design rev {project.revision}
           </span>
         </div>
-        <button
-          onClick={() =>
-            bump({
-              projectId: project._id,
-              note: "Architect issued a design update - glazing spec changed",
-            })
-          }
-          className="text-xs font-medium bg-stone-900 text-white px-3 py-2 rounded-md hover:bg-stone-700 transition"
-        >
-          Simulate design change
-        </button>
+
+        <div className="flex items-center gap-2">
+          {published && (
+            <button
+              onClick={async () => {
+                setBusy(true);
+                await reset({ projectId: project._id });
+                setBusy(false);
+              }}
+              disabled={busy}
+              className="text-xs font-medium text-stone-500 hover:text-stone-900 px-3 py-2 transition disabled:opacity-40"
+            >
+              Reset demo
+            </button>
+          )}
+          <button
+            onClick={async () => {
+              setBusy(true);
+              await publish({ projectId: project._id });
+              setBusy(false);
+            }}
+            disabled={busy || published}
+            className="text-xs font-medium bg-stone-900 text-white px-3 py-2 rounded-md hover:bg-stone-700 transition disabled:bg-stone-200 disabled:text-stone-400"
+          >
+            {published ? "Addendum published" : "Publish design change"}
+          </button>
+        </div>
       </div>
     </header>
   );

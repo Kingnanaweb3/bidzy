@@ -3,6 +3,8 @@ import { api } from "../../convex/_generated/api";
 
 const DOT = {
   design_changed: "bg-amber-500",
+  quote_stale: "bg-amber-400",
+  reprice_requested: "bg-blue-500",
   quote_parsed: "bg-emerald-500",
   invite_sent: "bg-stone-400",
   reply_received: "bg-blue-500",

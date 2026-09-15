@@ -67,8 +67,11 @@ export default defineSchema({
     ),
     exclusions: v.array(v.string()),
     inclusions: v.array(v.string()),
+    // which parts of the design this quote depends on
+    scopeTags: v.optional(v.array(v.string())),
     revision: v.number(),
     stale: v.boolean(),
+    staleReason: v.optional(v.string()),
     sourceUrl: v.optional(v.string()),
     rawText: v.optional(v.string()),
     needsReview: v.boolean(),
@@ -110,6 +113,16 @@ export default defineSchema({
   })
     .index("by_project", ["projectId"])
     .index("by_job", ["jobId"]),
+
+  // a published change to the design
+  addenda: defineTable({
+    projectId: v.id("projects"),
+    revision: v.number(),
+    title: v.string(),
+    affectsTags: v.array(v.string()),
+    sourceUrl: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_project", ["projectId"]),
 
   monitors: defineTable({
     projectId: v.id("projects"),

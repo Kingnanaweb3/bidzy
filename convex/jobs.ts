@@ -34,13 +34,9 @@ export const board = query({
       ]),
     ];
     const firms = await Promise.all(firmIds.map((id) => ctx.db.get(id)));
-    const firmById = new Map(
-      firms.filter(Boolean).map((f) => [f._id, f])
-    );
+    const firmById = new Map(firms.filter(Boolean).map((f) => [f._id, f]));
 
-    const allExclusions = [
-      ...new Set(quotes.flatMap((q) => q.exclusions)),
-    ].sort();
+    const allExclusions = [...new Set(quotes.flatMap((q) => q.exclusions))].sort();
 
     const rows = firmIds.map((firmId) => {
       const firm = firmById.get(firmId);
@@ -62,6 +58,7 @@ export const board = query({
               exclusions: quote.exclusions,
               inclusions: quote.inclusions,
               stale: quote.stale,
+              staleReason: quote.staleReason,
               needsReview: quote.needsReview,
               receivedAt: quote.receivedAt,
             }
@@ -69,6 +66,7 @@ export const board = query({
       };
     });
 
+    // only live quotes compete
     const live = rows.filter(
       (r) => r.quote && !r.quote.stale && r.quote.total != null
     );
@@ -76,12 +74,24 @@ export const board = query({
       ? Math.min(...live.map((r) => r.quote.total))
       : null;
 
+    // what the previous winner was, before anything went stale
+    const allPriced = rows.filter((r) => r.quote && r.quote.total != null);
+    const previousLowest = allPriced.length
+      ? Math.min(...allPriced.map((r) => r.quote.total))
+      : null;
+    const lowestMoved =
+      lowest != null && previousLowest != null && lowest !== previousLowest;
+
     return {
       job,
       projectRevision: project?.revision ?? 1,
       rows,
       allExclusions,
       lowest,
+      previousLowest,
+      lowestMoved,
+      liveCount: live.length,
+      staleCount: rows.filter((r) => r.quote?.stale).length,
       quotedCount: rows.filter((r) => r.quote).length,
       invitedCount: rows.length,
     };

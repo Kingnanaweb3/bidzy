@@ -63,14 +63,14 @@ export const ensureInbox = action({
 
 // Register the Convex HTTP endpoint as the webhook target.
 export const registerWebhook = action({
-  args: { url: v.string() },
-  handler: async (_ctx, { url }) => {
+  args: { url: v.string(), clientId: v.optional(v.string()) },
+  handler: async (_ctx, { url, clientId }) => {
     const res = await am("/webhooks", {
       method: "POST",
       body: JSON.stringify({
         url,
         event_types: ["message.received"],
-        client_id: "bidzy-inbound",
+        client_id: clientId ?? "bidzy-inbound",
       }),
     });
     return res;

@@ -1,6 +1,7 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internal, components } from "./_generated/api";
+import { registerStaticRoutes } from "@convex-dev/static-hosting";
 
 const http = httpRouter();
 
@@ -53,5 +54,9 @@ http.route({
   method: "GET",
   handler: httpAction(async () => new Response("bidzy webhook alive")),
 });
+
+// Serve the built frontend. Registered last so the webhook route above
+// wins before the SPA fallback matches everything.
+registerStaticRoutes(http, components.staticHosting, { spaFallback: true });
 
 export default http;

@@ -4,6 +4,7 @@ import Board from "./components/Board";
 import Feed from "./components/Feed";
 import Header from "./components/Header";
 import Inbox from "./components/Inbox";
+import ReadDoc from "./components/ReadDoc";
 
 export default function App() {
   const projects = useQuery(api.projects.list);
@@ -26,6 +27,7 @@ export default function App() {
           {job ? (
             <>
               <Board jobId={job._id} />
+              <Docs jobId={job._id} />
               <Inbox job={job} jobId={job._id} />
             </>
           ) : (
@@ -36,6 +38,12 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+function Docs({ jobId }) {
+  const data = useQuery(api.jobs.board, { jobId });
+  if (!data) return null;
+  return <ReadDoc jobId={jobId} rows={data.rows} />;
 }
 
 function Splash({ text }) {

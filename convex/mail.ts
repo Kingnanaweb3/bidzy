@@ -22,6 +22,45 @@ export const threadsByJob = query({
   },
 });
 
+export const noteAttachmentRead = internalMutation({
+  args: {
+    jobId: v.id("jobs"),
+    filename: v.string(),
+    total: v.optional(v.number()),
+    exclusionCount: v.number(),
+  },
+  handler: async (ctx, { jobId, filename, total, exclusionCount }) => {
+    const job = await ctx.db.get(jobId);
+    if (!job) return;
+    await ctx.db.insert("events", {
+      projectId: job.projectId,
+      jobId,
+      type: "quote_parsed",
+      summary: `Read ${filename}${
+        total != null ? ` - $${total.toLocaleString()}` : ""
+      }${exclusionCount ? `, ${exclusionCount} thing${
+        exclusionCount === 1 ? "" : "s"
+      } not covered` : ""}`,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+export const noteAttachmentFailed = internalMutation({
+  args: { jobId: v.id("jobs"), filename: v.string(), reason: v.string() },
+  handler: async (ctx, { jobId, filename, reason }) => {
+    const job = await ctx.db.get(jobId);
+    if (!job) return;
+    await ctx.db.insert("events", {
+      projectId: job.projectId,
+      jobId,
+      type: "parse_failed",
+      summary: `Couldn't read ${filename} - ${reason}`,
+      createdAt: Date.now(),
+    });
+  },
+});
+
 export const recordOutbound = internalMutation({
   args: {
     jobId: v.id("jobs"),
@@ -138,6 +177,25 @@ export const handleInbound = internalMutation({
         summary: `Reply from ${firm?.name ?? addr}`,
         createdAt: Date.now(),
       });
+    }
+
+    // A PDF attachment is the real quote. Hand it to Firecrawl.
+    const pdfs = (args.attachments ?? []).filter(
+      (a) =>
+        a.url &&
+        (a.filename.toLowerCase().endsWith(".pdf") ||
+          (a.contentType ?? "").includes("pdf"))
+    );
+    if (firm && pdfs.length) {
+      for (const pdf of pdfs) {
+        await ctx.scheduler.runAfter(0, internal.firecrawl.readAttachment, {
+          jobId,
+          firmId: firm._id,
+          url: pdf.url,
+          filename: pdf.filename,
+        });
+      }
+      return { stored: true, matched: true, queued: pdfs.length };
     }
 
     if (!firm) return { stored: true, matched: false };

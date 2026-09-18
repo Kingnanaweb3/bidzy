@@ -15,10 +15,14 @@ export const threadsByJob = query({
     const firms = await Promise.all(firmIds.map((id) => ctx.db.get(id)));
     const nameById = new Map(firms.filter(Boolean).map((f) => [f._id, f.name]));
 
-    return msgs.map((m) => ({
-      ...m,
-      firmName: m.firmId ? nameById.get(m.firmId) ?? "Unknown" : "Unknown",
-    }));
+    return msgs.map((m) => {
+      const known = m.firmId ? nameById.get(m.firmId) : null;
+      return {
+        ...m,
+        firmName: known ?? m.fromAddress,
+        unknownSender: !known && m.direction === "in",
+      };
+    });
   },
 });
 
@@ -220,7 +224,18 @@ export const handleInbound = internalMutation({
       await ctx.db.patch(inv._id, { status: "replied" });
     }
 
-    // try to read a price out of the body
+    // Prefer reading the message properly. The regex below stays as a
+    // floor so a missing key or a model hiccup still yields something.
+    if (process.env.GROQ_API_KEY) {
+      await ctx.scheduler.runAfter(0, internal.reader.readEmail, {
+        jobId,
+        firmId: firm._id,
+        firmName: firm.name,
+        text: args.text,
+      });
+      return { stored: true, matched: true, reading: true };
+    }
+
     const parsed = extractQuote(args.text);
     if (parsed.total == null) return { stored: true, matched: true, quoted: false };
 
@@ -326,3 +341,83 @@ function titleCase(s) {
   const t = s.trim().replace(/\.$/, "");
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
+
+
+// Someone replied from an address we had not seen: a different mailbox at
+// the same company, or a firm we never invited. Either way the price is
+// real, so it needs a home rather than being dropped.
+export const attachSender = mutation({
+  args: {
+    messageId: v.id("messages"),
+    firmId: v.optional(v.id("firms")),
+    newFirmName: v.optional(v.string()),
+  },
+  handler: async (ctx, { messageId, firmId, newFirmName }) => {
+    const message = await ctx.db.get(messageId);
+    if (!message) throw new Error("no message");
+    const job = await ctx.db.get(message.jobId);
+    if (!job) throw new Error("no job");
+
+    let targetId = firmId ?? null;
+
+    if (!targetId) {
+      const name = (newFirmName ?? message.fromAddress.split("@")[0]).trim();
+      targetId = await ctx.db.insert("firms", {
+        name,
+        email: message.fromAddress,
+        trade: job.trade,
+        licenceStatus: "unknown",
+      });
+      await ctx.db.insert("invitations", {
+        jobId: job._id,
+        firmId: targetId,
+        status: "replied",
+        sentAt: message.createdAt,
+        chaseCount: 0,
+      });
+      await ctx.db.insert("events", {
+        projectId: job.projectId,
+        jobId: job._id,
+        type: "reply_received",
+        summary: `${name} wrote in without being asked — added to this job`,
+        createdAt: Date.now(),
+      });
+    } else {
+      const firm = await ctx.db.get(targetId);
+      if (firm) {
+        await ctx.db.insert("events", {
+          projectId: job.projectId,
+          jobId: job._id,
+          type: "reply_received",
+          summary: `${message.fromAddress} recognised as ${firm.name}`,
+          createdAt: Date.now(),
+        });
+      }
+    }
+
+    // every message from that address belongs to them, not just this one
+    const all = await ctx.db
+      .query("messages")
+      .withIndex("by_job", (q) => q.eq("jobId", job._id))
+      .collect();
+    let linked = 0;
+    for (const m of all) {
+      if (m.fromAddress === message.fromAddress && !m.firmId) {
+        await ctx.db.patch(m._id, { firmId: targetId });
+        linked++;
+      }
+    }
+
+    const firm = await ctx.db.get(targetId);
+    if (firm && process.env.GROQ_API_KEY) {
+      await ctx.scheduler.runAfter(0, internal.reader.readEmail, {
+        jobId: job._id,
+        firmId: targetId,
+        firmName: firm.name,
+        text: message.body,
+      });
+    }
+
+    return { linked, firmId: targetId };
+  },
+});

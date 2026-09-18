@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Card, CardHead, Chip, Ghost, Empty, I, when } from "../components/ui";
 
@@ -8,6 +8,8 @@ export default function InboxPage({ job, jobId }) {
   const reprice = useAction(api.agentmail.requestReprice);
   const ensure = useAction(api.agentmail.ensureInbox);
   const autoChase = useAction(api.chaseNow.run);
+  const attach = useMutation(api.mail.attachSender);
+  const board = useQuery(api.jobs.board, { jobId });
   const threads = useQuery(api.mail.threadsByJob, { jobId });
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
@@ -77,7 +79,11 @@ export default function InboxPage({ job, jobId }) {
                       <Chip tone={m.direction === "in" ? "good" : "neutral"}>
                         {m.direction === "in" ? "in" : "out"}
                       </Chip>
-                      <span className="display text-[12.5px] sm:text-[13px] font-medium truncate">
+                      <span
+                        className={`display text-[12.5px] sm:text-[13px] font-medium truncate ${
+                          m.unknownSender ? "text-[#60A5FA]" : ""
+                        }`}
+                      >
                         {m.firmName}
                       </span>
                       <span className="ml-auto text-[11px] text-[#5A5A5A] shrink-0">
@@ -104,6 +110,13 @@ export default function InboxPage({ job, jobId }) {
                 : undefined
             }
           />
+          {selected?.unknownSender && (
+            <UnknownSender
+              message={selected}
+              rows={board?.rows ?? []}
+              onAttach={attach}
+            />
+          )}
           {selected ? (
             <pre className="px-4 sm:px-6 py-5 sm:py-6 text-[13px] text-[#C9C9C9] leading-6 whitespace-pre-wrap font-sans">
               {selected.body}
@@ -112,6 +125,49 @@ export default function InboxPage({ job, jobId }) {
             <Empty>Pick a message to read it.</Empty>
           )}
         </Card>
+      </div>
+    </div>
+  );
+}
+
+
+function UnknownSender({ message, rows, onAttach }) {
+  const [busy, setBusy] = useState(false);
+  const [choice, setChoice] = useState("");
+
+  return (
+    <div className="mx-4 sm:mx-6 mt-5 rounded-xl bg-[#12243D] border border-[#1E3A5F] px-4 py-3.5">
+      <p className="text-[12.5px] text-[#60A5FA] leading-5">
+        We don't recognise {message.fromAddress}. Their price won't be
+        compared until you say who they are.
+      </p>
+      <div className="flex flex-wrap gap-2 mt-3">
+        <select
+          value={choice}
+          onChange={(e) => setChoice(e.target.value)}
+          className="h-9 text-[12.5px] rounded-lg px-3 bg-[#1A1A1A] text-[#EDEDED] border border-[#2E2E2E]"
+        >
+          <option value="">Add as a new company</option>
+          {rows.map((r) => (
+            <option key={r.firmId} value={r.firmId}>
+              This is {r.firmName}
+            </option>
+          ))}
+        </select>
+        <button
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await onAttach({
+              messageId: message._id,
+              firmId: choice || undefined,
+            });
+            setBusy(false);
+          }}
+          className="h-9 px-3.5 rounded-lg text-[12.5px] font-medium bg-[#2F7FFF] text-white hover:bg-[#1F6FEF] transition disabled:opacity-40"
+        >
+          {busy ? "Linking\u2026" : "Use this price"}
+        </button>
       </div>
     </div>
   );

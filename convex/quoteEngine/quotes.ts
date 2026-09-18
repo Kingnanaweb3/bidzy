@@ -1,6 +1,37 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+// Contractors describe the same item a dozen ways. The component decides
+// what counts as the same thing, so the board has one row per real item.
+const CANONICAL: Array<[string, string[]]> = [
+  ["Removal and disposal", ["removal", "disposal", "tear-off", "tear off", "strip"]],
+  ["Delivery", ["delivery", "deliver", "transport", "haulage"]],
+  ["Skip hire", ["skip", "dumpster", "waste container"]],
+  ["Crane hire", ["crane", "craneage", "hoist"]],
+  ["Sales tax", ["sales tax", "tax", "vat"]],
+  ["Night work", ["night work", "out of hours", "overtime"]],
+  ["Gutter replacement", ["gutter", "guttering", "downpipe"]],
+  ["Temporary protection", ["temporary protection", "sheeting", "scaffold cover"]],
+  ["Scaffolding", ["scaffold"]],
+  ["Structural repair", ["structural", "rafter", "joist", "decking repair"]],
+  ["Permits", ["permit", "building control", "planning"]],
+  ["Warranty", ["warranty", "guarantee"]],
+];
+
+export function canonical(raw: string): string {
+  const t = raw.toLowerCase();
+  for (const [label, needles] of CANONICAL) {
+    if (needles.some((n) => t.includes(n))) return label;
+  }
+  // nothing matched - keep it, but tidied
+  const clean = raw.trim().replace(/\.$/, "");
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+
+function canonicalList(arr?: string[]): string[] {
+  return [...new Set((arr ?? []).filter(Boolean).map(canonical))];
+}
+
 const lineItem = v.object({
   label: v.string(),
   amount: v.optional(v.number()),
@@ -39,8 +70,8 @@ export const record = mutation({
       total: args.total,
       currency: args.currency ?? "USD",
       lineItems: args.lineItems ?? [],
-      inclusions: args.inclusions ?? [],
-      exclusions: args.exclusions ?? [],
+      inclusions: canonicalList(args.inclusions),
+      exclusions: canonicalList(args.exclusions),
       scopeTags: args.scopeTags ?? [],
       valid: true,
       invalidReason: undefined,
@@ -67,9 +98,10 @@ export const confirm = mutation({
     lineItems: v.optional(v.array(lineItem)),
   },
   handler: async (ctx, { quoteId, ...patch }) => {
-    const clean = Object.fromEntries(
+    const clean: any = Object.fromEntries(
       Object.entries(patch).filter(([, val]) => val !== undefined)
     );
+    if (clean.exclusions) clean.exclusions = canonicalList(clean.exclusions);
     await ctx.db.patch(quoteId, { ...clean, needsReview: false });
     const q = await ctx.db.get(quoteId);
     if (q) await relearnBenchmarks(ctx, q.jobKey);
@@ -254,7 +286,8 @@ async function relearnBenchmarks(ctx, jobKey) {
     for (const item of q.lineItems) {
       if (item.amount == null) continue;
       for (const label of q.inclusions) {
-        if (!matches(item.label, label)) continue;
+        if (!matches(item.label, label) && canonical(item.label) !== label)
+          continue;
         const cur = totals.get(label) ?? { sum: 0, n: 0 };
         cur.sum += item.amount;
         cur.n += 1;

@@ -16,9 +16,10 @@ export default function ReadDoc({ jobId, rows }) {
     setErr("");
     setMsg("");
     try {
+      const name = rows.find((x) => x.firmId === firmId)?.firmName ?? "that company";
       const r = await read({ jobId, firmId, url });
       setMsg(
-        `Read ${r.total != null ? "$" + r.total.toLocaleString() : "no total"}` +
+        `${name}: read ${r.total != null ? "$" + r.total.toLocaleString() : "no total"}` +
           (r.exclusions.length
             ? ` - not covered: ${r.exclusions.join(", ")}`
             : "") +
@@ -37,14 +38,14 @@ export default function ReadDoc({ jobId, rows }) {
         Read a quote document
       </h2>
       <p className="text-xs text-stone-500 mb-4">
-        Paste the link to a PDF quote. Emailed PDFs are read automatically.
+        Choose who sent it, then paste the link. Emailed PDFs are read automatically.
       </p>
 
       <div className="flex gap-2 flex-wrap">
         <select
           value={firmId}
           onChange={(e) => setFirmId(e.target.value)}
-          className="text-sm border border-stone-300 rounded-md px-3 py-2 bg-white"
+          className="text-sm border-2 border-stone-400 rounded-md px-3 py-2 bg-white font-medium"
         >
           {rows?.map((r) => (
             <option key={r.firmId} value={r.firmId}>

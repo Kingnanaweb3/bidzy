@@ -35,6 +35,27 @@ export const ensureInbox = action({
       return { inboxId: job.job.inboxId, address: job.job.inboxAddress, reused: true };
     }
 
+    // Inbox allowances are finite. Reuse one we already made for Bidzy
+    // before asking for another.
+    const existing = await am("/inboxes");
+    const list = existing.inboxes ?? existing.data ?? existing;
+    const mine = Array.isArray(list)
+      ? list.find((i: any) =>
+          String(i.inbox_id ?? i.address ?? "").startsWith("bidzy-")
+        )
+      : null;
+
+    if (mine) {
+      const inboxId = mine.inbox_id ?? mine.inboxId ?? mine.address;
+      const address = mine.address ?? mine.email ?? inboxId;
+      await ctx.runMutation(api.jobs.setInbox, {
+        jobId,
+        inboxId: String(inboxId),
+        inboxAddress: String(address),
+      });
+      return { inboxId, address, reused: true };
+    }
+
     const uname =
       username ??
       `bidzy-${job.job.trade}-${String(jobId).slice(-6)}`.toLowerCase();

@@ -1,57 +1,105 @@
-# Bidzy
+# Recyv
 
-**An agent that chases construction price quotes over email, reads them, and lines them up side by side.**
+Get paid with a link. Crypto payment links settling on Robinhood Chain.
 
-[Build log](./hackathon.md)
+```
+Create → Share → Pay → Receive
+```
 
-> A construction company emails 200 specialist firms to collect 60 prices, and most arrive in the final two days as inconsistent PDFs with the real cost hidden at the bottom. Those firms will never log into a portal — email is the only wire between them. So we put an agent on it.
-
-Built for the Convex All Gas Hackathon.
-
----
-
-## What it does
-
-Each job on a building project gets its own agent and its own inbox. The agent emails specialist firms asking for a price, chases the ones who go quiet, reads the quotes as they land, and lines them up on a live board with everything each firm refuses to do pulled out where you can see it.
-
-When the architect changes the design, only the quotes that depend on the changed part go stale. The board re-ranks what's left and says what the new best valid price is.
-
-## Running it
+## Run it
 
 ```bash
 npm install
-npx convex dev          # leave running
-npx convex run seed:demo
+cp .env.example .env.local   # fill CHAIN_ID and RPC_URL
 npm run dev
 ```
 
-## Try the demo
+Two values in `.env.local` are the only things standing between this and a
+working app: `NEXT_PUBLIC_CHAIN_ID` and `NEXT_PUBLIC_RPC_URL`. Everything else
+has a default.
 
-Open the app, then click **Publish design change**. Three quotes strike through as priced against the old drawings; one firm priced the current drawings and survives; the board re-ranks and tells you the best valid price moved from $168,900 to $174,600.
+## What's here
 
-**Reset demo** puts it back.
+| Path | Does |
+|---|---|
+| `app/page.tsx` | Create a request, get a link + QR |
+| `app/r/[id]/page.tsx` | Public payment page |
+| `app/dashboard/page.tsx` | Payments received, read from Transfer logs |
+| `lib/token-config.ts` | **The fast token swap** |
+| `lib/link.ts` | Request ⇄ link encoding |
+| `lib/chain.ts` | Chain + ERC-20 constants |
 
-## Architecture
+Payment requests are encoded into the link itself, so there's no database to
+stand up before the demo. Move to short ids (`recyv.xyz/r/8Kx29A`) with a KV
+store when you want branded links.
 
+---
+
+## Launch-day runbook: swapping the token CA
+
+The address is **never baked into the build**. The app fetches
+`NEXT_PUBLIC_TOKEN_CONFIG_URL` every 5 seconds with `cache: no-store`, so
+changing it propagates to every open browser without a rebuild, a redeploy, or
+a reload.
+
+### Before launch
+
+Host the config somewhere you can edit in one action — Vercel Edge Config, a
+gist, an S3 object. Set `NEXT_PUBLIC_TOKEN_CONFIG_URL` to it and deploy. Serve
+it with `Cache-Control: no-store` and CORS open, or the poll will read a stale
+copy from a CDN.
+
+```json
+{ "address": "0x0000…0000", "symbol": "RECYV", "decimals": 18, "live": false }
 ```
-convex/
-  schema.ts       projects, jobs, firms, invitations, quotes, addenda, events
-  projects.ts     publishAddendum - transactional, selective, idempotent
-  jobs.ts         board - one reactive query backing the whole screen
-  quotes.ts       record / confirm
-  seed.ts         demo data
-src/components/
-  Board.tsx       the comparison board
-  Header.tsx      design-change control
-  Feed.tsx        live activity
-```
 
-## Stack
+While `live` is false or the address is the zero address, the Pay button stays
+disabled and the page says so. Nothing silently sends funds to a placeholder.
 
-- **Convex** — database, reactive queries, transactional mutations, hosting
-- **Firecrawl** — quote PDF parsing, licence lookups, plan monitoring _(in progress)_
-- **AgentMail** — one inbox per job _(in progress)_
+### At launch — the ten seconds
 
-## Status
+1. Deploy the token, copy the CA.
+2. Paste it into the config, set `"live": true`. Save.
+3. Done. Every open tab flips within 5 seconds.
 
-See [hackathon.md](./hackathon.md) for an honest account of what's built and what isn't.
+### If the config host is slow or down
+
+Two overrides that need no infrastructure at all:
+
+- **URL:** append `?token=0xABC…` to any Recyv page — takes effect on load,
+  that tab only. Good for the demo screen.
+- **Console:** `recyvSetToken("0xABC…")` — sticks in `localStorage` for that
+  browser.
+
+Both beat the hosted config, so you can go live from the podium even if the
+config edit hasn't landed.
+
+### Why the app calls `symbol()` and `decimals()` first
+
+A one-character typo in a pasted CA is an address that still looks valid.
+Before enabling payments the app reads the contract; if it doesn't answer like
+an ERC-20 on this chain, payments stay paused and the page says why. It costs
+one RPC round-trip and it's the difference between a paused demo and payments
+sent somewhere unrecoverable.
+
+**One thing worth locking down before mainnet, since you're going live for
+real:** whoever can write to that config URL controls where every payment
+button points. Put it behind auth you control — not a public gist you can also
+edit, and not a repo with the hackathon team's write access. This is the single
+highest-value target in the whole app, and it's outside anything a contract
+audit would look at.
+
+---
+
+## Not done yet (deliberately out of MVP scope)
+
+- Short link ids (needs a KV store)
+- Invoices, receipts, recurring payments — the V2/V3 roadmap
+- Chain switching if the wallet is on the wrong network
+- Rate limiting on the config poll for large traffic
+
+## Not built, and shouldn't be
+
+The token stays separate from the payment flow. Nobody should need to hold
+RECYV to pay a freelancer 50 USDC — that's the thing that makes this read as a
+real payment product rather than a token wrapper.

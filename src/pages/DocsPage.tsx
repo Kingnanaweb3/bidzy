@@ -1,0 +1,119 @@
+import { useState } from "react";
+import { useAction, useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { Card, CardHead, Chip, Primary, Empty, I, money } from "../components/ui";
+
+export default function DocsPage({ jobId }) {
+  const d = useQuery(api.jobs.board, { jobId });
+  const read = useAction(api.firecrawl.readQuoteDocument);
+  const [url, setUrl] = useState("");
+  const [firmId, setFirmId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  const rows = d?.rows ?? [];
+  const active = firmId || rows[0]?.firmId || "";
+
+  const go = async () => {
+    if (!url || !active) return;
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    const name = rows.find((x) => x.firmId === active)?.firmName ?? "That company";
+    try {
+      const r = await read({ jobId, firmId: active, url });
+      setMsg(
+        `${name}: ${r.total != null ? money(r.total) : "no total found"}` +
+          (r.exclusions.length ? `, leaving out ${r.exclusions.join(", ")}` : "") +
+          (r.needsReview ? ". Worth checking by hand." : "")
+      );
+      setUrl("");
+    } catch (e) {
+      setErr(String(e.message ?? e));
+    }
+    setBusy(false);
+  };
+
+  const withDocs = rows.filter((r) => r.quote?.lineItems?.length);
+
+  return (
+    <div className="pt-6 space-y-6">
+      <Card>
+        <CardHead
+          icon={I.doc}
+          title="Read a quote document"
+          note="PDFs that arrive by email are read without being asked"
+        />
+        <div className="p-6 flex flex-wrap gap-3">
+          <select
+            value={active}
+            onChange={(e) => setFirmId(e.target.value)}
+            className="h-10 text-[13.5px] rounded-xl px-3.5 bg-[#242424] text-[#EDEDED]
+              border border-[#2E2E2E] hover:border-[#3A3A3A] transition"
+          >
+            {rows.map((r) => (
+              <option key={r.firmId} value={r.firmId}>{r.firmName}</option>
+            ))}
+          </select>
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && go()}
+            placeholder="https://…/quote.pdf"
+            className="h-10 flex-1 min-w-[260px] text-[13.5px] rounded-xl px-4
+              bg-[#242424] text-[#EDEDED] border border-[#2E2E2E]
+              focus:border-[#2F7FFF] outline-none transition"
+          />
+          <Primary onClick={go} disabled={busy || !url}>
+            {busy ? "Reading…" : "Read it"}
+          </Primary>
+        </div>
+        {(msg || err) && (
+          <p className={`px-6 pb-6 text-[12.5px] leading-5 ${err ? "text-[#F87171]" : "text-[#4ADE80]"}`}>
+            {err || msg}
+          </p>
+        )}
+      </Card>
+
+      <Card>
+        <CardHead icon={I.scale} title="What we read from each quote" />
+        {withDocs.length === 0 ? (
+          <Empty>Nothing read yet. Paste a quote PDF above, or let one arrive by email.</Empty>
+        ) : (
+          <div className="divide-y divide-[#242424]">
+            {withDocs.map((r) => (
+              <div key={r.firmId} className="px-6 py-5">
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <span className="text-[14px] font-semibold">{r.firmName}</span>
+                  <span className="num text-[14px] text-[#A1A1A1]">
+                    {money(r.quote.total)}
+                  </span>
+                  {r.quote.needsReview && <Chip tone="info">worth checking</Chip>}
+                  {r.quote.stale && <Chip tone="warn">priced the old job</Chip>}
+                </div>
+                <div className="grid sm:grid-cols-2 gap-x-8 gap-y-2">
+                  {r.quote.lineItems.map((li, i) => (
+                    <div key={i} className="flex justify-between gap-4 h-6 items-center">
+                      <span className="text-[12.5px] text-[#A1A1A1] truncate">
+                        {li.label}
+                      </span>
+                      <span className="num text-[12.5px] text-[#C9C9C9] shrink-0">
+                        {money(li.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {r.quote.exclusions.length > 0 && (
+                  <p className="text-[12px] text-[#F87171] mt-4 leading-5">
+                    Not covered: {r.quote.exclusions.join(", ")}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}

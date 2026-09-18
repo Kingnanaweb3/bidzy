@@ -1,78 +1,76 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Card, Chip, IconBox, I } from "./ui";
-
-const money = (n) =>
-  n == null ? "—" : "$" + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+import { Card, Chip, IconBox, I, money } from "./ui";
 
 export default function Stats({ jobId }) {
   const d = useQuery(api.jobs.board, { jobId });
-  if (!d) return null;
+  if (!d) return <div className="h-[148px]" />;
 
   const gap =
-    d.lowest != null && d.headlineLowest != null
-      ? d.lowest - d.headlineLowest
-      : null;
+    d.lowest != null && d.headlineLowest != null ? d.lowest - d.headlineLowest : null;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-      <Card className="p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <IconBox>{I.scale}</IconBox>
-          <span className="text-[13.5px] font-semibold">Best real cost</span>
-        </div>
-        <p className="num text-[30px] font-bold tracking-tight">
-          {money(d.lowest)}
-        </p>
-        <p className="text-[12.5px] text-[#A1A1A1] mt-2">
-          {d.lowestParty ?? "no valid price yet"}
-        </p>
-      </Card>
-
-      <Card className="p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <IconBox>{I.alert}</IconBox>
-          <span className="text-[13.5px] font-semibold">Cheapest on paper</span>
-        </div>
-        <p className="num text-[30px] font-bold tracking-tight text-[#A1A1A1]">
-          {money(d.headlineLowest)}
-        </p>
-        <div className="flex items-center gap-2 mt-2">
-          {d.headlineMisleads ? (
-            <>
-              <Chip tone="warn">
-                really {gap > 0 ? "+" : ""}
-                {money(Math.abs(gap))} more
-              </Chip>
-              <span className="text-[12.5px] text-[#A1A1A1]">
-                {d.headlineParty}
-              </span>
-            </>
-          ) : (
-            <span className="text-[12.5px] text-[#A1A1A1]">
-              {d.headlineParty ?? "waiting on prices"}
-            </span>
-          )}
-        </div>
-      </Card>
-
-      <Card className="p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <IconBox>{I.mail}</IconBox>
-          <span className="text-[13.5px] font-semibold">Replies</span>
-        </div>
-        <p className="num text-[30px] font-bold tracking-tight">
-          {d.quotedCount}
-          <span className="text-[#5A5A5A]">/{d.invitedCount}</span>
-        </p>
-        <div className="flex items-center gap-2 mt-2">
-          {d.staleCount > 0 ? (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <Stat
+        icon={I.scale}
+        label="Best real cost"
+        value={money(d.lowest)}
+        foot={d.lowestParty ?? "no valid price yet"}
+        accent
+      />
+      <Stat
+        icon={I.alert}
+        label="Cheapest on paper"
+        value={money(d.headlineLowest)}
+        dim
+        foot={d.headlineParty ?? "waiting on prices"}
+        chip={
+          d.headlineMisleads && gap != null ? (
+            <Chip tone="warn">really {money(Math.abs(gap))} more</Chip>
+          ) : null
+        }
+      />
+      <Stat
+        icon={I.mail}
+        label="Replies"
+        value={
+          <>
+            {d.quotedCount}
+            <span className="text-[#5A5A5A]">/{d.invitedCount}</span>
+          </>
+        }
+        chip={
+          d.staleCount > 0 ? (
             <Chip tone="warn">{d.staleCount} need repricing</Chip>
           ) : (
             <Chip tone="good">all current</Chip>
-          )}
-        </div>
-      </Card>
+          )
+        }
+      />
     </div>
+  );
+}
+
+function Stat({ icon, label, value, foot, chip, accent, dim }) {
+  return (
+    <Card className="p-6 flex flex-col">
+      <div className="h-9 flex items-center gap-3 mb-5">
+        <IconBox>{icon}</IconBox>
+        <span className="text-[13.5px] font-semibold">{label}</span>
+      </div>
+      <p
+        className={`num text-[30px] font-bold tracking-tight leading-9 ${
+          accent ? "text-[#4ADE80]" : dim ? "text-[#A1A1A1]" : "text-[#EDEDED]"
+        }`}
+      >
+        {value}
+      </p>
+      <div className="mt-3 space-y-2">
+        <div className="h-[18px] text-[12.5px] text-[#A1A1A1] truncate">
+          {foot}
+        </div>
+        <div className="h-[22px] flex items-center">{chip}</div>
+      </div>
+    </Card>
   );
 }

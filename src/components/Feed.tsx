@@ -1,6 +1,6 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Card, IconBox, I } from "./ui";
+import { Card, CardHead, Empty, I, when } from "./ui";
 
 const DOT = {
   scope_changed: "bg-[#FBBF24]",
@@ -12,44 +12,33 @@ const DOT = {
   parse_failed: "bg-[#F87171]",
 };
 
-export default function Feed({ projectId }) {
-  const events = useQuery(api.events.feed, { projectId, limit: 30 });
+export default function Feed({ projectId, limit = 30, full }) {
+  const events = useQuery(api.events.feed, { projectId, limit });
 
   return (
     <Card className="h-fit">
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-[#2A2A2A]">
-        <IconBox>{I.clock}</IconBox>
-        <h2 className="text-[14.5px] font-semibold">Activity</h2>
-      </div>
-      <ol className="px-5 py-4 space-y-4 max-h-[560px] overflow-y-auto">
-        {events?.map((e) => (
-          <li key={e._id} className="flex gap-3">
-            <span
-              className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${
-                DOT[e.type] ?? "bg-[#3A3A3A]"
-              }`}
-            />
-            <div className="min-w-0">
-              <p className="text-[12.5px] text-[#C9C9C9] leading-snug">
-                {e.summary}
-              </p>
-              <p className="text-[11px] text-[#5A5A5A] mt-1">
-                {new Date(e.createdAt).toLocaleString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-              </p>
-            </div>
-          </li>
-        ))}
-        {events && events.length === 0 && (
-          <li className="text-[12.5px] text-[#5A5A5A]">
-            Nothing yet. Ask the companies for a price to begin.
-          </li>
-        )}
-      </ol>
+      <CardHead icon={I.clock} title="Activity" />
+      {events && events.length === 0 ? (
+        <Empty>Nothing yet. Ask the companies for a price to begin.</Empty>
+      ) : (
+        <ol className={`px-6 py-5 space-y-5 ${full ? "" : "max-h-[548px] overflow-y-auto"}`}>
+          {events?.map((e) => (
+            <li key={e._id} className="flex gap-3">
+              <span
+                className={`mt-[7px] h-1.5 w-1.5 rounded-full shrink-0 ${
+                  DOT[e.type] ?? "bg-[#3A3A3A]"
+                }`}
+              />
+              <div className="min-w-0">
+                <p className="text-[12.5px] text-[#C9C9C9] leading-5">{e.summary}</p>
+                <p className="text-[11px] text-[#5A5A5A] mt-1 leading-4">
+                  {when(e.createdAt)}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
     </Card>
   );
 }

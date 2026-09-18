@@ -1,14 +1,26 @@
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import Board from "./components/Board";
-import Feed from "./components/Feed";
-import Header from "./components/Header";
-import Inbox from "./components/Inbox";
-import ReadDoc from "./components/ReadDoc";
 import Sidebar from "./components/Sidebar";
-import Stats from "./components/Stats";
+import Header from "./components/Header";
+import ComparePage from "./pages/Compare";
+import InboxPage from "./pages/InboxPage";
+import DocsPage from "./pages/DocsPage";
+import ActivityPage from "./pages/ActivityPage";
+import ProjectsPage from "./pages/ProjectsPage";
+import BudgetPage from "./pages/BudgetPage";
+
+const TITLES = {
+  compare: ["Price comparison", "Every price, compared like for like."],
+  inbox: ["Inbox", "Companies reply here. They never sign in."],
+  docs: ["Documents", "Quote PDFs, read into numbers."],
+  activity: ["Activity", "Everything that has happened on this job."],
+  projects: ["Projects", "Work you are getting priced."],
+  budget: ["Budget", "What this job will really cost."],
+};
 
 export default function App() {
+  const [page, setPage] = useState("compare");
   const projects = useQuery(api.projects.list);
   const project = projects?.[0];
   const jobs = useQuery(
@@ -20,27 +32,34 @@ export default function App() {
   if (projects === undefined) return <Splash text="Loading" />;
   if (!project) return <Splash text="No project yet. Run the seed to start one." />;
 
+  const [title, note] = TITLES[page];
+
   return (
     <div className="min-h-screen bg-[#171717] lg:p-3">
       <div className="lg:flex lg:gap-3">
-        <Sidebar project={project} job={job} />
-        <div className="flex-1 min-w-0 bg-[#1A1A1A] lg:rounded-3xl lg:border lg:border-[#2A2A2A]">
-          <Header project={project} />
-          <main className="px-5 sm:px-7 pb-10">
-            {job ? (
-              <>
-                <Stats jobId={job._id} project={project} />
-                <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_330px] gap-5 mt-5">
-                  <div className="min-w-0 space-y-5">
-                    <Board jobId={job._id} />
-                    <Inbox job={job} jobId={job._id} />
-                    <Docs jobId={job._id} />
-                  </div>
-                  <Feed projectId={project._id} />
-                </div>
-              </>
-            ) : (
+        <Sidebar project={project} job={job} page={page} onNavigate={setPage} />
+        <div className="flex-1 min-w-0 bg-[#1A1A1A] lg:rounded-3xl lg:border lg:border-[#2A2A2A] overflow-hidden">
+          <Header
+            project={project}
+            title={title}
+            note={note}
+            showScopeAction={page === "compare"}
+          />
+          <main className="px-6 pb-8">
+            {!job ? (
               <Splash text="No job on this project yet." />
+            ) : page === "compare" ? (
+              <ComparePage jobId={job._id} project={project} />
+            ) : page === "inbox" ? (
+              <InboxPage job={job} jobId={job._id} />
+            ) : page === "docs" ? (
+              <DocsPage jobId={job._id} />
+            ) : page === "activity" ? (
+              <ActivityPage projectId={project._id} />
+            ) : page === "projects" ? (
+              <ProjectsPage projects={projects} jobs={jobs} />
+            ) : (
+              <BudgetPage jobId={job._id} />
             )}
           </main>
         </div>
@@ -49,15 +68,9 @@ export default function App() {
   );
 }
 
-function Docs({ jobId }) {
-  const data = useQuery(api.jobs.board, { jobId });
-  if (!data) return null;
-  return <ReadDoc jobId={jobId} rows={data.rows} />;
-}
-
 function Splash({ text }) {
   return (
-    <div className="min-h-screen grid place-items-center text-[#5A5A5A] text-sm">
+    <div className="min-h-[60vh] grid place-items-center text-[#5A5A5A] text-sm">
       {text}
     </div>
   );

@@ -1,3 +1,82 @@
+#!/bin/bash
+# Lock the header grid, stop chips wrapping, seed sample mail for dev.
+set -e
+[ -d convex/quoteEngine ] || { echo "Run from the bidzy project root."; exit 1; }
+
+# ---- 1. chips never wrap; header cells are a fixed stack ----
+python3 - << 'PY'
+p = "src/components/ui.tsx"
+s = open(p).read()
+s = s.replace(
+  'className={`inline-flex items-center h-[22px] px-2 rounded-md text-[11px] font-medium leading-none ${tones[tone]}`}',
+  'className={`inline-flex items-center h-[22px] px-2 rounded-md text-[11px] font-medium leading-none whitespace-nowrap shrink-0 ${tones[tone]}`}'
+)
+open(p, "w").write(s)
+print("chips no longer wrap")
+PY
+
+# ---- 2. board header: fixed-height name row + fixed-height chip row ----
+python3 - << 'PY'
+p = "src/components/Board.tsx"
+s = open(p).read()
+
+old_head = s[s.index("          <thead>"):s.index("          </thead>")]
+new_head = '''          <thead>
+            <tr>
+              <th className="align-bottom text-left pb-5">
+                <div className="h-5" />
+                <div className="h-[26px] flex items-end">
+                  <span className="text-[12px] font-medium text-[#5A5A5A]">
+                    Company
+                  </span>
+                </div>
+              </th>
+              {rows.map((r) => (
+                <th key={r.firmId} className="align-bottom text-left pb-5 pl-5">
+                  <div
+                    className={`h-5 text-[14px] font-semibold leading-5 truncate ${
+                      r.quote?.stale ? "text-[#5A5A5A]" : "text-[#EDEDED]"
+                    }`}
+                  >
+                    {r.firmName}
+                  </div>
+                  <div className="h-[26px] pt-1 flex items-center gap-1.5 overflow-hidden">
+                    <Status row={r} />
+                    {r.licenceStatus === "expired" && (
+                      <Chip tone="bad">licence expired</Chip>
+                    )}
+                  </div>
+                </th>
+              ))}
+            </tr>
+'''
+s = s.replace(old_head, new_head)
+open(p, "w").write(s)
+print("board header locked to a fixed stack")
+PY
+
+# ---- 3. stat cards: chip on its own line so nothing wraps ----
+python3 - << 'PY'
+p = "src/components/Stats.tsx"
+s = open(p).read()
+s = s.replace(
+'''      <div className="h-[22px] flex items-center gap-2 mt-3">
+        {chip}
+        {foot && <span className="text-[12.5px] text-[#A1A1A1] truncate">{foot}</span>}
+      </div>''',
+'''      <div className="mt-3 space-y-2">
+        <div className="h-[18px] text-[12.5px] text-[#A1A1A1] truncate">
+          {foot}
+        </div>
+        <div className="h-[22px] flex items-center">{chip}</div>
+      </div>'''
+)
+open(p, "w").write(s)
+print("stat cards stacked")
+PY
+
+# ---- 4. sample mail + docs so every page has something in dev ----
+cat > convex/demo.ts << 'EOF'
 import { mutation } from "./_generated/server";
 import { components } from "./_generated/api";
 
@@ -130,3 +209,30 @@ export const sampleMail = mutation({
     return { messages: firms.length + replies.length };
   },
 });
+EOF
+
+# ---- 5. richer empty states that say what to do ----
+python3 - << 'PY'
+p = "src/pages/InboxPage.tsx"
+s = open(p).read()
+s = s.replace(
+  "<Empty>No email yet.</Empty>",
+  '<Empty>No email yet. Use \u201cAsk for prices\u201d above and the replies land here.</Empty>'
+)
+open(p, "w").write(s)
+
+p = "src/pages/DocsPage.tsx"
+s = open(p).read()
+s = s.replace(
+  "<Empty>Nothing read yet.</Empty>",
+  '<Empty>Nothing read yet. Paste a quote PDF above, or let one arrive by email.</Empty>'
+)
+open(p, "w").write(s)
+print("empty states now tell you what to do")
+PY
+
+echo ""
+echo "Now run:"
+echo "  npx convex dev --once"
+echo "  npx convex run seed:demo"
+echo "  npx convex run demo:sampleMail"

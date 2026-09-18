@@ -1,13 +1,15 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Card, Chip, IconBox, I } from "./ui";
-
-const money = (n) =>
-  n == null ? "—" : "$" + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+import { Card, CardHead, Chip, I, money } from "./ui";
 
 export default function Board({ jobId }) {
   const d = useQuery(api.jobs.board, { jobId });
-  if (!d) return <Card className="p-5 text-[13px] text-[#5A5A5A]">Loading…</Card>;
+  if (!d)
+    return (
+      <Card>
+        <CardHead icon={I.scale} title="Price comparison" note="loading" />
+      </Card>
+    );
 
   const {
     rows, allExclusions, lowest, lowestParty,
@@ -15,21 +17,19 @@ export default function Board({ jobId }) {
     previousBest, lowestMoved, staleCount,
   } = d;
 
+  const colW = `${Math.floor(76 / Math.max(rows.length, 1))}%`;
+
   return (
     <Card>
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-[#2A2A2A]">
-        <IconBox>{I.scale}</IconBox>
-        <div>
-          <h2 className="text-[14.5px] font-semibold">Price comparison</h2>
-          <p className="text-[12px] text-[#5A5A5A] mt-0.5">
-            Missing work is priced from what the others charged
-          </p>
-        </div>
-      </div>
+      <CardHead
+        icon={I.scale}
+        title="Price comparison"
+        note="Missing work is priced from what the others charged"
+      />
 
       {(lowestMoved || headlineMisleads) && (
-        <div className="mx-5 mt-5 rounded-xl bg-[#2E2410] border border-[#443415] px-4 py-3.5">
-          <p className="text-[13.5px] text-[#FBBF24] leading-relaxed">
+        <div className="mx-6 mt-6 rounded-xl bg-[#2E2410] border border-[#443415] px-4 py-3.5">
+          <p className="text-[13.5px] text-[#FBBF24] leading-6">
             {lowestMoved ? (
               <>
                 You changed the job, so {staleCount} price
@@ -49,23 +49,35 @@ export default function Board({ jobId }) {
         </div>
       )}
 
-      <div className="overflow-x-auto p-5">
-        <table className="w-full border-collapse text-[13.5px] min-w-[700px]">
+      <div className="overflow-x-auto p-6">
+        <table className="w-full table-fixed border-collapse min-w-[760px]">
+          <colgroup>
+            <col style={{ width: "24%" }} />
+            {rows.map((r) => (
+              <col key={r.firmId} style={{ width: colW }} />
+            ))}
+          </colgroup>
+
           <thead>
-            <tr className="text-left">
-              <th className="w-[140px] pb-3 text-[12px] font-medium text-[#5A5A5A]">
-                Company
+            <tr>
+              <th className="align-bottom text-left pb-5">
+                <div className="h-5" />
+                <div className="h-[26px] flex items-end">
+                  <span className="text-[12px] font-medium text-[#5A5A5A]">
+                    Company
+                  </span>
+                </div>
               </th>
               {rows.map((r) => (
-                <th key={r.firmId} className="pb-3 px-4 min-w-[168px]">
+                <th key={r.firmId} className="align-bottom text-left pb-5 pl-5">
                   <div
-                    className={`font-semibold ${
+                    className={`h-5 text-[14px] font-semibold leading-5 truncate ${
                       r.quote?.stale ? "text-[#5A5A5A]" : "text-[#EDEDED]"
                     }`}
                   >
                     {r.firmName}
                   </div>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
+                  <div className="h-[26px] pt-1 flex items-center gap-1.5 overflow-hidden">
                     <Status row={r} />
                     {r.licenceStatus === "expired" && (
                       <Chip tone="bad">licence expired</Chip>
@@ -81,9 +93,9 @@ export default function Board({ jobId }) {
               {rows.map((r) => (
                 <td
                   key={r.firmId}
-                  className={`px-4 py-3 ${r.quote?.stale ? "opacity-40" : ""}`}
+                  className={`py-4 pl-5 align-top ${r.quote?.stale ? "opacity-40" : ""}`}
                 >
-                  <span className="num text-[15px] text-[#A1A1A1]">
+                  <span className="num text-[15px] text-[#A1A1A1] leading-6">
                     {money(r.quote?.total)}
                   </span>
                 </td>
@@ -94,36 +106,34 @@ export default function Board({ jobId }) {
               {rows.map((r) => (
                 <td
                   key={r.firmId}
-                  className={`px-4 py-3 align-top ${
-                    r.quote?.stale ? "opacity-40" : ""
-                  }`}
+                  className={`py-4 pl-5 align-top ${r.quote?.stale ? "opacity-40" : ""}`}
                 >
                   {r.quote ? (
                     r.quote.hidden > 0 ? (
                       <>
-                        <span className="num text-[15px] text-[#FBBF24]">
+                        <span className="num text-[15px] text-[#FBBF24] leading-6">
                           + {money(r.quote.hidden)}
                         </span>
-                        <span className="block text-[11.5px] text-[#5A5A5A] mt-1.5 leading-snug">
+                        <span className="block text-[11.5px] text-[#5A5A5A] mt-1.5 leading-5">
                           {r.quote.gaps.map((g) => g.label).join(", ")}
                         </span>
                       </>
                     ) : (
-                      <span className="text-[12.5px] text-[#5A5A5A]">
+                      <span className="text-[12.5px] text-[#5A5A5A] leading-6">
                         nothing left out
                       </span>
                     )
                   ) : (
-                    <span className="text-[#3A3A3A]">—</span>
+                    <span className="text-[#3A3A3A] leading-6">—</span>
                   )}
                 </td>
               ))}
             </Line>
 
-            <tr>
-              <td className="pt-4 pr-4 align-top">
-                <div className="text-[13.5px] font-semibold">Real cost</div>
-                <div className="text-[11.5px] text-[#5A5A5A] mt-0.5">
+            <tr className="border-t border-[#242424]">
+              <td className="py-5 pr-5 align-top">
+                <div className="text-[13.5px] font-semibold leading-5">Real cost</div>
+                <div className="text-[11.5px] text-[#5A5A5A] leading-4 mt-0.5">
                   like for like
                 </div>
               </td>
@@ -135,19 +145,17 @@ export default function Board({ jobId }) {
                 return (
                   <td
                     key={r.firmId}
-                    className={`px-4 pt-4 pb-1 align-top ${
-                      r.quote?.stale ? "opacity-40" : ""
-                    }`}
+                    className={`py-5 pl-5 align-top ${r.quote?.stale ? "opacity-40" : ""}`}
                   >
                     <div
-                      className={`rounded-xl px-3.5 py-3 border ${
+                      className={`rounded-xl px-4 py-3.5 border min-h-[84px] ${
                         best
                           ? "bg-[#0F2C1F] border-[#1B4A33]"
                           : "bg-[#242424] border-[#2E2E2E]"
                       }`}
                     >
                       <span
-                        className={`num text-[22px] font-bold tracking-tight ${
+                        className={`num block text-[22px] font-bold tracking-tight leading-7 ${
                           best
                             ? "text-[#4ADE80]"
                             : r.quote?.stale
@@ -157,21 +165,19 @@ export default function Board({ jobId }) {
                       >
                         {money(r.quote?.comparable)}
                       </span>
-                      {best && (
-                        <span className="block text-[11px] text-[#4ADE80] mt-1">
-                          cheapest once compared fairly
-                        </span>
-                      )}
-                      {r.quote?.stale && (
-                        <span className="block text-[11px] text-[#FBBF24] mt-1">
-                          priced the old job
-                        </span>
-                      )}
-                      {r.quote?.needsReview && !r.quote?.stale && (
-                        <span className="block text-[11px] text-[#60A5FA] mt-1">
-                          worth checking
-                        </span>
-                      )}
+                      <span className="block text-[11px] mt-1.5 leading-4 min-h-[16px]">
+                        {best && (
+                          <span className="text-[#4ADE80]">
+                            cheapest once compared fairly
+                          </span>
+                        )}
+                        {r.quote?.stale && (
+                          <span className="text-[#FBBF24]">priced the old job</span>
+                        )}
+                        {r.quote?.needsReview && !r.quote?.stale && !best && (
+                          <span className="text-[#60A5FA]">worth checking</span>
+                        )}
+                      </span>
                     </div>
                   </td>
                 );
@@ -191,13 +197,13 @@ export default function Board({ jobId }) {
 
             {allExclusions.map((ex) => (
               <tr key={ex} className="border-t border-[#242424]">
-                <td className="py-2.5 pr-4 text-[12.5px] text-[#A1A1A1] align-top">
+                <td className="h-11 pr-5 text-[12.5px] text-[#A1A1A1] align-middle">
                   {ex}
                 </td>
                 {rows.map((r) => {
                   if (!r.quote)
                     return (
-                      <td key={r.firmId} className="px-4 py-2.5 text-[#3A3A3A]">
+                      <td key={r.firmId} className="h-11 pl-5 text-[#3A3A3A] align-middle">
                         —
                       </td>
                     );
@@ -205,13 +211,9 @@ export default function Board({ jobId }) {
                   return (
                     <td
                       key={r.firmId}
-                      className={`px-4 py-2.5 ${r.quote.stale ? "opacity-40" : ""}`}
+                      className={`h-11 pl-5 align-middle ${r.quote.stale ? "opacity-40" : ""}`}
                     >
-                      <span
-                        className={`text-[12px] ${
-                          out ? "text-[#F87171]" : "text-[#4ADE80]"
-                        }`}
-                      >
+                      <span className={`text-[12px] ${out ? "text-[#F87171]" : "text-[#4ADE80]"}`}>
                         {out ? "not covered" : "covered"}
                       </span>
                     </td>
@@ -229,9 +231,9 @@ export default function Board({ jobId }) {
 function Line({ label, note, children }) {
   return (
     <tr className="border-t border-[#242424]">
-      <td className="py-3 pr-4 align-top">
-        <div className="text-[13px] text-[#EDEDED]">{label}</div>
-        <div className="text-[11.5px] text-[#5A5A5A] mt-0.5">{note}</div>
+      <td className="py-4 pr-5 align-top">
+        <div className="text-[13px] text-[#EDEDED] leading-6">{label}</div>
+        <div className="text-[11.5px] text-[#5A5A5A] leading-4 mt-0.5">{note}</div>
       </td>
       {children}
     </tr>
@@ -241,7 +243,6 @@ function Line({ label, note, children }) {
 function Status({ row }) {
   if (row.quote?.stale) return <Chip tone="warn">needs repricing</Chip>;
   if (row.quote) return <Chip tone="good">replied</Chip>;
-  if (row.chaseCount > 0)
-    return <Chip tone="neutral">chased {row.chaseCount}×</Chip>;
+  if (row.chaseCount > 0) return <Chip tone="neutral">chased {row.chaseCount}×</Chip>;
   return <Chip tone="neutral">no reply yet</Chip>;
 }

@@ -1,136 +1,26 @@
-import { mutation } from "./_generated/server";
-import { components } from "./_generated/api";
+#!/bin/bash
+# A full, believable demo state: 5 companies, threads, chases, a decline,
+# documents, and a week of activity.
+set -e
+[ -d convex/quoteEngine ] || { echo "Run from the bidzy project root."; exit 1; }
 
-export const awaitingReplies = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const jobs = await ctx.db.query("jobs").collect();
-    for (const job of jobs) {
-      await ctx.runMutation(components.quoteEngine.quotes.clearJob, {
-        jobKey: String(job._id),
-      });
-    }
-    const invs = await ctx.db.query("invitations").collect();
-    for (const i of invs) await ctx.db.patch(i._id, { status: "sent", chaseCount: 0 });
-    const msgs = await ctx.db.query("messages").collect();
-    for (const m of msgs) await ctx.db.delete(m._id);
-    return { reset: invs.length };
-  },
-});
+# --- chips must not be clipped in the board header ---
+python3 - << 'PY'
+p = "src/components/Board.tsx"
+s = open(p).read()
+s = s.replace(
+  'className="h-[26px] pt-1 flex items-center gap-1.5 overflow-hidden"',
+  'className="h-[26px] pt-1 flex items-center gap-1.5"'
+)
+s = s.replace("<Chip tone=\"bad\">licence expired</Chip>", "<Chip tone=\"bad\">expired</Chip>")
+open(p, "w").write(s)
+print("chips no longer clipped")
+PY
 
-// Fills the inbox with a believable thread so the Inbox and Documents
-// pages have something to show without sending real mail.
-export const sampleMail = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const job = await ctx.db.query("jobs").first();
-    if (!job) throw new Error("seed a project first");
-    const firms = await ctx.db.query("firms").collect();
-    const inbox = job.inboxAddress ?? "bidzy-roofing-demo@agentmail.to";
-    const MIN = 60000;
-    const now = Date.now();
-
-    const old = await ctx.db
-      .query("messages")
-      .withIndex("by_job", (q) => q.eq("jobId", job._id))
-      .collect();
-    for (const m of old) await ctx.db.delete(m._id);
-
-    const invite = (name) =>
-      [
-        `Hi ${name},`,
-        ``,
-        `We're pricing ${job.name} at 42 Marlow Street and would like your number.`,
-        ``,
-        `Scope: ${job.description ?? job.name}`,
-        ``,
-        `Please reply with:`,
-        `  Total: $0,000`,
-        `  Excludes: anything not in your price`,
-        `  Includes: anything worth calling out`,
-        ``,
-        `A plain reply is fine - we read the email itself, no forms.`,
-        ``,
-        `Thanks,`,
-        `Bidzy, on behalf of the homeowner`,
-      ].join("\n");
-
-    for (let i = 0; i < firms.length; i++) {
-      const f = firms[i];
-      await ctx.db.insert("messages", {
-        jobId: job._id,
-        firmId: f._id,
-        direction: "out",
-        subject: `Request for pricing - ${job.name}, 42 Marlow Street`,
-        body: invite(f.name),
-        fromAddress: inbox,
-        toAddress: f.email,
-        attachments: [],
-        kind: "invitation",
-        createdAt: now - 400 * MIN + i * MIN,
-      });
-    }
-
-    const replies = [
-      [
-        "Apex Roofing",
-        "Re: Request for pricing - Roof replacement",
-        `Morning,\n\nHappy to price this.\n\nTotal: $14,200\n\nBreakdown:\nTear-off and disposal $2,400\nAsphalt shingle, supply $6,100\nLabour $4,500\nDelivery and skip hire $1,200\n\nIncludes: removal and disposal, delivery, skip hire, sales tax, 5 year workmanship warranty\nExcludes: gutter replacement\n\nPrice holds 30 days.\n\nRegards,\nDanny, Apex Roofing`,
-        120,
-      ],
-      [
-        "Crown Roof Systems",
-        "Re: Request for pricing - Roof replacement",
-        `Our price is $11,900.\n\nExcludes: removal and disposal, delivery, skip hire, sales tax\nIncludes: labour\n\nCustomer to arrange a skip on site before we start.\n\nCrown Roof Systems`,
-        95,
-      ],
-      [
-        "PrimeBuild",
-        "Re: Request for pricing - Roof replacement",
-        `Hello,\n\n$13,450 all in for the roof. Quote attached.\n\nDoes not include skip hire or gutters.\n\nPrimeBuild`,
-        60,
-      ],
-      [
-        "Skyline Exteriors",
-        "Re: Request for pricing - Roof replacement",
-        `Hi,\n\nQuote attached as a PDF.\n\nTotal: $15,800 in natural slate. We can also do the same works in asphalt shingle at $13,900 if that suits better.\n\nIncludes: removal and disposal, delivery, crane hire, sales tax, temporary protection, 10 year workmanship warranty\nExcludes: night work, gutter replacement\n\nThanks,\nMarian, Skyline Exteriors`,
-        20,
-      ],
-    ];
-
-    for (const [name, subject, body, minsAgo] of replies) {
-      const f = firms.find((x) => x.name.startsWith(String(name).split(" ")[0]));
-      if (!f) continue;
-      await ctx.db.insert("messages", {
-        jobId: job._id,
-        firmId: f._id,
-        direction: "in",
-        subject: String(subject),
-        body: String(body),
-        fromAddress: f.email,
-        toAddress: inbox,
-        attachments:
-          name === "Skyline Exteriors"
-            ? [{ filename: "quote-skyline-slate.pdf", url: "/quotes/quote-skyline-slate.pdf", contentType: "application/pdf" }]
-            : name === "PrimeBuild"
-            ? [{ filename: "primebuild-quote.pdf", url: "", contentType: "application/pdf" }]
-            : [],
-        kind: "quote",
-        createdAt: now - Number(minsAgo) * MIN,
-      });
-      await ctx.db.insert("events", {
-        projectId: job.projectId,
-        jobId: job._id,
-        type: "reply_received",
-        summary: `Reply from ${f.name}`,
-        createdAt: now - Number(minsAgo) * MIN,
-      });
-    }
-
-    return { messages: firms.length + replies.length };
-  },
-});
-
+python3 - << 'PY'
+p = "convex/demo.ts"
+s = open(p).read()
+s += '''
 
 // A full demo state. Five companies, real-looking threads, chases, a
 // decline, documents and a week of activity.
@@ -219,7 +109,7 @@ export const showcase = mutation({
         ``,
         `Thanks,`,
         `Bidzy, on behalf of the homeowner`,
-      ].join("\n");
+      ].join("\\n");
 
     // day 9: invitations
     let i = 0;
@@ -232,7 +122,7 @@ export const showcase = mutation({
     // day 7: first reply, Apex
     await msg(
       "Apex Roofing", "in", "Re: Request for pricing - Roof replacement",
-      `Morning,\n\nHappy to price this.\n\nTotal: $14,200\n\nTear-off and disposal $2,400\nAsphalt shingle, supply $6,100\nLabour $4,500\nDelivery and skip hire $1,200\n\nIncludes: removal and disposal, delivery, skip hire, sales tax, 5 year workmanship warranty\nExcludes: gutter replacement\n\nPrice holds 30 days.\n\nRegards,\nDanny, Apex Roofing`,
+      `Morning,\\n\\nHappy to price this.\\n\\nTotal: $14,200\\n\\nTear-off and disposal $2,400\\nAsphalt shingle, supply $6,100\\nLabour $4,500\\nDelivery and skip hire $1,200\\n\\nIncludes: removal and disposal, delivery, skip hire, sales tax, 5 year workmanship warranty\\nExcludes: gutter replacement\\n\\nPrice holds 30 days.\\n\\nRegards,\\nDanny, Apex Roofing`,
       now - 6 * DAY - 3 * HOUR
     );
     await ev("reply_received", "Reply from Apex Roofing", now - 6 * DAY - 3 * HOUR);
@@ -241,7 +131,7 @@ export const showcase = mutation({
     // day 5: chase the quiet ones
     for (const n of ["Crown Roof Systems", "PrimeBuild", "Skyline Exteriors", "Halewood Roofing"]) {
       await msg(n, "out", "Following up - pricing for Roof replacement",
-        `Hi ${n},\n\nJust following up on pricing for the roof at 42 Marlow Street.\n\nIf you're not bidding this one, a one-line reply is all we need and we'll stop chasing.\n\nThanks,\nBidzy, on behalf of the homeowner`,
+        `Hi ${n},\\n\\nJust following up on pricing for the roof at 42 Marlow Street.\\n\\nIf you're not bidding this one, a one-line reply is all we need and we'll stop chasing.\\n\\nThanks,\\nBidzy, on behalf of the homeowner`,
         now - 5 * DAY);
     }
     await ev("chase_sent", "Followed up with 4 companies - no reply yet", now - 5 * DAY);
@@ -249,7 +139,7 @@ export const showcase = mutation({
     // day 4: Crown replies
     await msg(
       "Crown Roof Systems", "in", "Re: Request for pricing - Roof replacement",
-      `Our price is $11,900.\n\nExcludes: removal and disposal, delivery, skip hire, sales tax\nIncludes: labour\n\nCustomer to arrange a skip on site before we start.\n\nCrown Roof Systems`,
+      `Our price is $11,900.\\n\\nExcludes: removal and disposal, delivery, skip hire, sales tax\\nIncludes: labour\\n\\nCustomer to arrange a skip on site before we start.\\n\\nCrown Roof Systems`,
       now - 4 * DAY - 5 * HOUR
     );
     await ev("reply_received", "Reply from Crown Roof Systems", now - 4 * DAY - 5 * HOUR);
@@ -258,7 +148,7 @@ export const showcase = mutation({
     // day 3: Halewood declines
     await msg(
       "Halewood Roofing", "in", "Re: Following up - pricing for Roof replacement",
-      `Thanks for thinking of us - we're booked solid until March so we'll pass on this one.\n\nGood luck with it.\n\nHalewood Roofing`,
+      `Thanks for thinking of us - we're booked solid until March so we'll pass on this one.\\n\\nGood luck with it.\\n\\nHalewood Roofing`,
       now - 3 * DAY
     );
     await ev("reply_received", "Halewood Roofing declined - booked until March", now - 3 * DAY);
@@ -266,7 +156,7 @@ export const showcase = mutation({
     // day 2: PrimeBuild, vague, expired licence
     await msg(
       "PrimeBuild", "in", "Re: Request for pricing - Roof replacement",
-      `Hello,\n\n$13,450 all in for the roof. Quote attached.\n\nDoes not include skip hire or gutters.\n\nPrimeBuild`,
+      `Hello,\\n\\n$13,450 all in for the roof. Quote attached.\\n\\nDoes not include skip hire or gutters.\\n\\nPrimeBuild`,
       now - 2 * DAY - 2 * HOUR,
       [{ filename: "primebuild-quote.pdf", url: "/quotes/quote-crown-asphalt.pdf", contentType: "application/pdf" }]
     );
@@ -277,7 +167,7 @@ export const showcase = mutation({
     // yesterday: Skyline, with the slate option
     await msg(
       "Skyline Exteriors", "in", "Re: Request for pricing - Roof replacement",
-      `Hi,\n\nQuote attached as a PDF.\n\nTotal: $15,800 in natural slate. We can also do the same works in asphalt shingle at $13,900 if that suits better.\n\nIncludes: removal and disposal, delivery, crane hire, sales tax, temporary protection, 10 year workmanship warranty\nExcludes: night work, gutter replacement\n\nThanks,\nMarian, Skyline Exteriors`,
+      `Hi,\\n\\nQuote attached as a PDF.\\n\\nTotal: $15,800 in natural slate. We can also do the same works in asphalt shingle at $13,900 if that suits better.\\n\\nIncludes: removal and disposal, delivery, crane hire, sales tax, temporary protection, 10 year workmanship warranty\\nExcludes: night work, gutter replacement\\n\\nThanks,\\nMarian, Skyline Exteriors`,
       now - 20 * HOUR,
       [{ filename: "quote-skyline-slate.pdf", url: "/quotes/quote-skyline-slate.pdf", contentType: "application/pdf" }]
     );
@@ -361,3 +251,12 @@ export const showcase = mutation({
     return { project: "Roof replacement", companies: spec.length, replies: 5 };
   },
 });
+'''
+open(p, "w").write(s)
+print("showcase written")
+PY
+
+echo ""
+echo "Run it on whichever deployment you're demoing:"
+echo "  npx convex dev --once && npx convex run demo:showcase"
+echo "  npx convex run --prod demo:showcase"

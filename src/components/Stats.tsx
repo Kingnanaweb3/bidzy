@@ -39,6 +39,11 @@ export default function Stats({ jobId }) {
             <span className="text-[#5A5A5A]">/{d.invitedCount}</span>
           </>
         }
+        foot={
+          d.invitedCount - d.quotedCount > 0
+            ? `${d.invitedCount - d.quotedCount} still out`
+            : "everyone has answered"
+        }
         chip={
           d.staleCount > 0 ? (
             <Chip tone="warn">{d.staleCount} need repricing</Chip>

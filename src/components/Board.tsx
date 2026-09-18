@@ -17,7 +17,9 @@ export default function Board({ jobId }) {
     previousBest, lowestMoved, staleCount,
   } = d;
 
-  const colW = `${Math.floor(76 / Math.max(rows.length, 1))}%`;
+  const wide = rows.length > 4;
+  const labelW = wide ? 18 : 24;
+  const colW = `${Math.floor((100 - labelW) / Math.max(rows.length, 1))}%`;
 
   return (
     <Card>
@@ -52,7 +54,7 @@ export default function Board({ jobId }) {
       <div className="overflow-x-auto p-6">
         <table className="w-full table-fixed border-collapse min-w-[760px]">
           <colgroup>
-            <col style={{ width: "24%" }} />
+            <col style={{ width: `${labelW}%` }} />
             {rows.map((r) => (
               <col key={r.firmId} style={{ width: colW }} />
             ))}
@@ -61,7 +63,7 @@ export default function Board({ jobId }) {
           <thead>
             <tr>
               <th className="align-bottom text-left pb-5">
-                <div className="h-5" />
+                <div className="h-10" />
                 <div className="h-[26px] flex items-end">
                   <span className="text-[12px] font-medium text-[#5A5A5A]">
                     Company
@@ -71,16 +73,16 @@ export default function Board({ jobId }) {
               {rows.map((r) => (
                 <th key={r.firmId} className="align-bottom text-left pb-5 pl-5">
                   <div
-                    className={`h-5 text-[14px] font-semibold leading-5 truncate ${
+                    className={`h-10 text-[14px] font-semibold leading-5 ${
                       r.quote?.stale ? "text-[#5A5A5A]" : "text-[#EDEDED]"
                     }`}
                   >
                     {r.firmName}
                   </div>
-                  <div className="h-[26px] pt-1 flex items-center gap-1.5 overflow-hidden">
+                  <div className="h-[26px] pt-1 flex items-center gap-1.5">
                     <Status row={r} />
                     {r.licenceStatus === "expired" && (
-                      <Chip tone="bad">licence expired</Chip>
+                      <Chip tone="bad">expired</Chip>
                     )}
                   </div>
                 </th>
@@ -95,9 +97,13 @@ export default function Board({ jobId }) {
                   key={r.firmId}
                   className={`py-4 pl-5 align-top ${r.quote?.stale ? "opacity-40" : ""}`}
                 >
-                  <span className="num text-[15px] text-[#A1A1A1] leading-6">
-                    {money(r.quote?.total)}
-                  </span>
+                  {r.quote ? (
+                    <span className="num text-[15px] text-[#A1A1A1] leading-6">
+                      {money(r.quote.total)}
+                    </span>
+                  ) : (
+                    <Blank row={r} />
+                  )}
                 </td>
               ))}
             </Line>
@@ -124,7 +130,7 @@ export default function Board({ jobId }) {
                       </span>
                     )
                   ) : (
-                    <span className="text-[#3A3A3A] leading-6">—</span>
+                    <Blank row={r} />
                   )}
                 </td>
               ))}
@@ -154,17 +160,23 @@ export default function Board({ jobId }) {
                           : "bg-[#242424] border-[#2E2E2E]"
                       }`}
                     >
-                      <span
-                        className={`num block text-[22px] font-bold tracking-tight leading-7 ${
-                          best
-                            ? "text-[#4ADE80]"
-                            : r.quote?.stale
-                            ? "text-[#5A5A5A] line-through"
-                            : "text-[#EDEDED]"
-                        }`}
-                      >
-                        {money(r.quote?.comparable)}
-                      </span>
+                      {r.quote ? (
+                        <span
+                          className={`num block text-[22px] font-bold tracking-tight leading-7 ${
+                            best
+                              ? "text-[#4ADE80]"
+                              : r.quote.stale
+                              ? "text-[#5A5A5A] line-through"
+                              : "text-[#EDEDED]"
+                          }`}
+                        >
+                          {money(r.quote.comparable)}
+                        </span>
+                      ) : (
+                        <span className="block text-[13px] leading-7 text-[#4A4A4A]">
+                          {r.status === "declined" ? "not bidding" : "waiting"}
+                        </span>
+                      )}
                       <span className="block text-[11px] mt-1.5 leading-4 min-h-[16px]">
                         {best && (
                           <span className="text-[#4ADE80]">
@@ -203,8 +215,10 @@ export default function Board({ jobId }) {
                 {rows.map((r) => {
                   if (!r.quote)
                     return (
-                      <td key={r.firmId} className="h-11 pl-5 text-[#3A3A3A] align-middle">
-                        —
+                      <td key={r.firmId} className="h-11 pl-5 align-middle">
+                        <span className="text-[12px] text-[#3A3A3A]">
+                          {r.status === "declined" ? "" : "—"}
+                        </span>
                       </td>
                     );
                   const out = r.quote.exclusions.includes(ex);
@@ -241,8 +255,18 @@ function Line({ label, note, children }) {
 }
 
 function Status({ row }) {
+  if (row.status === "declined") return <Chip tone="neutral">not bidding</Chip>;
   if (row.quote?.stale) return <Chip tone="warn">needs repricing</Chip>;
   if (row.quote) return <Chip tone="good">replied</Chip>;
   if (row.chaseCount > 0) return <Chip tone="neutral">chased {row.chaseCount}×</Chip>;
   return <Chip tone="neutral">no reply yet</Chip>;
+}
+
+// A company that isn't bidding shouldn't look like one we're still waiting on.
+function Blank({ row }) {
+  return (
+    <span className="text-[12.5px] text-[#4A4A4A]">
+      {row.status === "declined" ? "not bidding" : "—"}
+    </span>
+  );
 }

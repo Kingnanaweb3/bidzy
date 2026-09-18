@@ -1,56 +1,68 @@
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState } from "react";
+import { I, Primary, Ghost } from "./ui";
 
 export default function Header({ project }) {
   const change = useMutation(api.projects.changeScope);
   const reset = useMutation(api.projects.resetStale);
   const addenda = useQuery(api.projects.addenda, { projectId: project._id });
   const [busy, setBusy] = useState(false);
-
   const changed = (addenda?.length ?? 0) > 0;
 
   return (
-    <header className="border-b border-stone-200 bg-white sticky top-0 z-10">
-      <div className="mx-auto max-w-[1400px] px-6 py-4 flex items-center justify-between">
-        <div className="flex items-baseline gap-4 min-w-0">
-          <span className="text-xl font-bold tracking-tight">Bidzy</span>
-          <span className="text-stone-300">/</span>
-          <span className="text-sm text-stone-600 truncate">
-            {project.name} - {project.client}
-          </span>
+    <div className="px-5 sm:px-7 pt-6 pb-5">
+      <div className="flex items-center gap-4 mb-7">
+        <div className="flex items-center gap-2.5 bg-[#1F1F1F] border border-[#2E2E2E] rounded-xl px-3.5 py-2.5 w-full max-w-[380px] text-[#5A5A5A]">
+          {I.search}
+          <span className="text-[13px]">Search companies, prices, email</span>
         </div>
-
-        <div className="flex items-center gap-3">
-          <span className="text-[11px] text-stone-500 hidden md:inline">
+        <div className="ml-auto flex items-center gap-2.5">
+          <div className="hidden sm:flex items-center gap-2 bg-[#1F1F1F] border border-[#2E2E2E] rounded-xl px-3.5 py-2.5 text-[12.5px] text-[#A1A1A1]">
+            {I.home}
             {project.scopeNote}
-          </span>
+          </div>
+          <div className="h-9 w-9 rounded-full bg-[#2A2A2A] grid place-items-center text-[12px] font-semibold text-[#A1A1A1]">
+            H
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[26px] font-bold tracking-tight">
+            {project.name}
+          </h1>
+          <p className="text-[13.5px] text-[#A1A1A1] mt-1">
+            {project.client} — prices arrive by email and are compared here like
+            for like.
+          </p>
+        </div>
+        <div className="flex gap-2.5">
           {changed && (
-            <button
+            <Ghost
+              busy={busy}
               onClick={async () => {
                 setBusy(true);
                 await reset({ projectId: project._id });
                 setBusy(false);
               }}
-              disabled={busy}
-              className="text-xs font-medium text-stone-500 hover:text-stone-900 px-3 py-2 transition disabled:opacity-40"
             >
               Undo
-            </button>
+            </Ghost>
           )}
-          <button
+          <Primary
+            disabled={busy || changed}
             onClick={async () => {
               setBusy(true);
               await change({ projectId: project._id });
               setBusy(false);
             }}
-            disabled={busy || changed}
-            className="text-xs font-medium bg-stone-900 text-white px-3 py-2 rounded-md hover:bg-stone-700 transition disabled:bg-stone-200 disabled:text-stone-400"
           >
-            {changed ? "Job changed" : "Change to slate instead"}
-          </button>
+            {changed ? "Changed to slate" : "Change to slate instead"}
+          </Primary>
         </div>
       </div>
-    </header>
+    </div>
   );
 }

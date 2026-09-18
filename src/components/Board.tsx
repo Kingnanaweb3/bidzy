@@ -1,172 +1,219 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Card, Chip, IconBox, I } from "./ui";
 
 const money = (n) =>
-  n == null ? "-" : "$" + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  n == null ? "—" : "$" + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 
 export default function Board({ jobId }) {
-  const data = useQuery(api.jobs.board, { jobId });
-  if (!data) return <p className="text-sm text-stone-400">Loading board...</p>;
+  const d = useQuery(api.jobs.board, { jobId });
+  if (!d) return <Card className="p-5 text-[13px] text-[#5A5A5A]">Loading…</Card>;
 
   const {
-    job, rows, allExclusions, lowest, lowestParty,
+    rows, allExclusions, lowest, lowestParty,
     headlineLowest, headlineParty, headlineMisleads,
-    previousBest, lowestMoved, staleCount, quotedCount, invitedCount,
-  } = data;
+    previousBest, lowestMoved, staleCount,
+  } = d;
 
   return (
-    <section>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{job.name}</h1>
-        <p className="text-sm text-stone-500 mt-1">
-          {quotedCount} of {invitedCount} companies have sent a price
-        </p>
+    <Card>
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-[#2A2A2A]">
+        <IconBox>{I.scale}</IconBox>
+        <div>
+          <h2 className="text-[14.5px] font-semibold">Price comparison</h2>
+          <p className="text-[12px] text-[#5A5A5A] mt-0.5">
+            Missing work is priced from what the others charged
+          </p>
+        </div>
       </div>
 
-      {lowestMoved && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-sm text-amber-900">
-            You changed the job and {staleCount} price
-            {staleCount === 1 ? "" : "s"} no longer apply. The best real cost is
-            now <strong>{money(lowest)}</strong> from {lowestParty}, up from{" "}
-            {money(previousBest)}.
-          </p>
-          <p className="text-xs text-amber-700 mt-1">
-            We've emailed them to ask whether their price still holds.
-          </p>
-        </div>
-      )}
-
-      {headlineMisleads && !lowestMoved && (
-        <div className="mb-4 rounded-lg border border-stone-200 bg-white px-4 py-3">
-          <p className="text-sm text-stone-800">
-            <strong>{headlineParty}</strong> looks cheapest at{" "}
-            {money(headlineLowest)} — but once what they leave out is priced in,{" "}
-            <strong>{lowestParty}</strong> is the cheaper job at {money(lowest)}.
+      {(lowestMoved || headlineMisleads) && (
+        <div className="mx-5 mt-5 rounded-xl bg-[#2E2410] border border-[#443415] px-4 py-3.5">
+          <p className="text-[13.5px] text-[#FBBF24] leading-relaxed">
+            {lowestMoved ? (
+              <>
+                You changed the job, so {staleCount} price
+                {staleCount === 1 ? "" : "s"} no longer{" "}
+                {staleCount === 1 ? "applies" : "apply"}. {lowestParty} already
+                priced this and still stands at {money(lowest)}, up from{" "}
+                {money(previousBest)}.
+              </>
+            ) : (
+              <>
+                {headlineParty} looks cheapest at {money(headlineLowest)} — but
+                once the work they leave out is priced in, {lowestParty} is the
+                cheaper job at {money(lowest)}.
+              </>
+            )}
           </p>
         </div>
       )}
 
-      <div className="overflow-x-auto border border-stone-200 rounded-xl bg-white">
-        <table className="w-full text-sm border-collapse">
+      <div className="overflow-x-auto p-5">
+        <table className="w-full border-collapse text-[13.5px] min-w-[700px]">
           <thead>
-            <tr className="border-b border-stone-200">
-              <th className="text-left font-medium text-stone-500 px-5 py-3 w-[190px]">
+            <tr className="text-left">
+              <th className="w-[140px] pb-3 text-[12px] font-medium text-[#5A5A5A]">
                 Company
               </th>
               {rows.map((r) => (
-                <th key={r.firmId} className="text-left px-5 py-3 min-w-[190px] align-top">
-                  <div className={`font-semibold ${r.quote?.stale ? "text-stone-400" : "text-stone-900"}`}>
+                <th key={r.firmId} className="pb-3 px-4 min-w-[168px]">
+                  <div
+                    className={`font-semibold ${
+                      r.quote?.stale ? "text-[#5A5A5A]" : "text-[#EDEDED]"
+                    }`}
+                  >
                     {r.firmName}
                   </div>
-                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                    <Status status={r.status} stale={r.quote?.stale} />
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    <Status row={r} />
                     {r.licenceStatus === "expired" && (
-                      <span className="text-[10px] font-medium bg-red-50 text-red-700 border border-red-200 px-1.5 py-0.5 rounded">
-                        Licence expired
-                      </span>
+                      <Chip tone="bad">licence expired</Chip>
                     )}
                   </div>
                 </th>
               ))}
             </tr>
           </thead>
+
           <tbody>
-            {/* headline */}
-            <tr className="border-b border-stone-100">
-              <Label sub="What they wrote">Quoted price</Label>
+            <Line label="Quoted" note="what they wrote">
               {rows.map((r) => (
-                <td key={r.firmId} className={`px-5 py-3 ${r.quote?.stale ? "opacity-40" : ""}`}>
-                  <div className={`text-base tabular-nums ${
-                    r.quote?.stale ? "text-stone-400 line-through decoration-stone-300" : "text-stone-600"
-                  }`}>
+                <td
+                  key={r.firmId}
+                  className={`px-4 py-3 ${r.quote?.stale ? "opacity-40" : ""}`}
+                >
+                  <span className="num text-[15px] text-[#A1A1A1]">
                     {money(r.quote?.total)}
-                  </div>
+                  </span>
                 </td>
               ))}
-            </tr>
+            </Line>
 
-            {/* what they left out, in money */}
-            <tr className="border-b border-stone-100">
-              <Label sub="Priced from what others charge">Missing work</Label>
+            <Line label="Missing work" note="priced from the others">
               {rows.map((r) => (
-                <td key={r.firmId} className={`px-5 py-3 ${r.quote?.stale ? "opacity-40" : ""}`}>
+                <td
+                  key={r.firmId}
+                  className={`px-4 py-3 align-top ${
+                    r.quote?.stale ? "opacity-40" : ""
+                  }`}
+                >
                   {r.quote ? (
                     r.quote.hidden > 0 ? (
-                      <div>
-                        <div className="text-base tabular-nums text-red-600">
+                      <>
+                        <span className="num text-[15px] text-[#FBBF24]">
                           + {money(r.quote.hidden)}
-                        </div>
-                        <div className="text-[10px] text-stone-400 mt-1 leading-tight">
+                        </span>
+                        <span className="block text-[11.5px] text-[#5A5A5A] mt-1.5 leading-snug">
                           {r.quote.gaps.map((g) => g.label).join(", ")}
-                        </div>
-                      </div>
+                        </span>
+                      </>
                     ) : (
-                      <span className="text-stone-400 text-xs">Nothing missing</span>
+                      <span className="text-[12.5px] text-[#5A5A5A]">
+                        nothing left out
+                      </span>
                     )
                   ) : (
-                    <span className="text-stone-300">-</span>
+                    <span className="text-[#3A3A3A]">—</span>
                   )}
                 </td>
               ))}
-            </tr>
+            </Line>
 
-            {/* the real number */}
-            <tr className="border-b border-stone-200 bg-stone-50/70">
-              <Label sub="Like for like">Real cost</Label>
+            <tr>
+              <td className="pt-4 pr-4 align-top">
+                <div className="text-[13.5px] font-semibold">Real cost</div>
+                <div className="text-[11.5px] text-[#5A5A5A] mt-0.5">
+                  like for like
+                </div>
+              </td>
               {rows.map((r) => {
-                const isLow =
+                const best =
                   r.quote?.comparable != null &&
                   r.quote.comparable === lowest &&
                   !r.quote.stale;
                 return (
-                  <td key={r.firmId} className={`px-5 py-4 ${r.quote?.stale ? "opacity-40" : ""}`}>
-                    <div className={`text-xl font-semibold tabular-nums ${
-                      isLow ? "text-emerald-700"
-                        : r.quote?.stale ? "text-stone-400 line-through decoration-stone-300"
-                        : "text-stone-900"
-                    }`}>
-                      {money(r.quote?.comparable)}
+                  <td
+                    key={r.firmId}
+                    className={`px-4 pt-4 pb-1 align-top ${
+                      r.quote?.stale ? "opacity-40" : ""
+                    }`}
+                  >
+                    <div
+                      className={`rounded-xl px-3.5 py-3 border ${
+                        best
+                          ? "bg-[#0F2C1F] border-[#1B4A33]"
+                          : "bg-[#242424] border-[#2E2E2E]"
+                      }`}
+                    >
+                      <span
+                        className={`num text-[22px] font-bold tracking-tight ${
+                          best
+                            ? "text-[#4ADE80]"
+                            : r.quote?.stale
+                            ? "text-[#5A5A5A] line-through"
+                            : "text-[#EDEDED]"
+                        }`}
+                      >
+                        {money(r.quote?.comparable)}
+                      </span>
+                      {best && (
+                        <span className="block text-[11px] text-[#4ADE80] mt-1">
+                          cheapest once compared fairly
+                        </span>
+                      )}
+                      {r.quote?.stale && (
+                        <span className="block text-[11px] text-[#FBBF24] mt-1">
+                          priced the old job
+                        </span>
+                      )}
+                      {r.quote?.needsReview && !r.quote?.stale && (
+                        <span className="block text-[11px] text-[#60A5FA] mt-1">
+                          worth checking
+                        </span>
+                      )}
                     </div>
-                    {isLow && (
-                      <div className="text-[10px] uppercase tracking-wide text-emerald-700 mt-0.5">
-                        Cheapest job
-                      </div>
-                    )}
-                    {r.quote?.stale && (
-                      <div className="text-[10px] text-amber-700 mt-1 leading-tight">
-                        Priced the old job
-                      </div>
-                    )}
-                    {r.quote?.needsReview && !r.quote?.stale && (
-                      <div className="text-[10px] text-blue-700 mt-1">Needs review</div>
-                    )}
                   </td>
                 );
               })}
             </tr>
 
-            <tr className="bg-stone-50">
-              <td colSpan={rows.length + 1}
-                className="px-5 py-2 text-[11px] uppercase tracking-widest text-stone-400">
-                What each price does not cover
-              </td>
-            </tr>
+            {allExclusions.length > 0 && (
+              <tr>
+                <td
+                  colSpan={rows.length + 1}
+                  className="pt-8 pb-3 text-[12px] font-medium text-[#5A5A5A]"
+                >
+                  What each price does not cover
+                </td>
+              </tr>
+            )}
 
             {allExclusions.map((ex) => (
-              <tr key={ex} className="border-b border-stone-100">
-                <Label>{ex}</Label>
+              <tr key={ex} className="border-t border-[#242424]">
+                <td className="py-2.5 pr-4 text-[12.5px] text-[#A1A1A1] align-top">
+                  {ex}
+                </td>
                 {rows.map((r) => {
                   if (!r.quote)
-                    return <td key={r.firmId} className="px-5 py-2.5 text-stone-300">-</td>;
-                  const excluded = r.quote.exclusions.includes(ex);
+                    return (
+                      <td key={r.firmId} className="px-4 py-2.5 text-[#3A3A3A]">
+                        —
+                      </td>
+                    );
+                  const out = r.quote.exclusions.includes(ex);
                   return (
-                    <td key={r.firmId} className={`px-5 py-2.5 ${r.quote.stale ? "opacity-40" : ""}`}>
-                      {excluded ? (
-                        <span className="text-red-600 font-medium">Not included</span>
-                      ) : (
-                        <span className="text-emerald-700">Included</span>
-                      )}
+                    <td
+                      key={r.firmId}
+                      className={`px-4 py-2.5 ${r.quote.stale ? "opacity-40" : ""}`}
+                    >
+                      <span
+                        className={`text-[12px] ${
+                          out ? "text-[#F87171]" : "text-[#4ADE80]"
+                        }`}
+                      >
+                        {out ? "not covered" : "covered"}
+                      </span>
                     </td>
                   );
                 })}
@@ -175,45 +222,26 @@ export default function Board({ jobId }) {
           </tbody>
         </table>
       </div>
-
-      <p className="text-xs text-stone-400 mt-3">
-        Missing work is priced using what the other companies charged for the same
-        item, so every quote can be compared like for like.
-      </p>
-    </section>
+    </Card>
   );
 }
 
-function Label({ children, sub }) {
+function Line({ label, note, children }) {
   return (
-    <td className="px-5 py-2.5 align-top">
-      <div className="text-stone-600 font-medium">{children}</div>
-      {sub && <div className="text-[10px] text-stone-400 mt-0.5">{sub}</div>}
-    </td>
+    <tr className="border-t border-[#242424]">
+      <td className="py-3 pr-4 align-top">
+        <div className="text-[13px] text-[#EDEDED]">{label}</div>
+        <div className="text-[11.5px] text-[#5A5A5A] mt-0.5">{note}</div>
+      </td>
+      {children}
+    </tr>
   );
 }
 
-function Status({ status, stale }) {
-  if (stale)
-    return (
-      <span className="text-[10px] font-medium border px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border-amber-200">
-        Needs repricing
-      </span>
-    );
-  const map = {
-    quoted: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    sent: "bg-stone-50 text-stone-500 border-stone-200",
-    opened: "bg-blue-50 text-blue-700 border-blue-200",
-    replied: "bg-blue-50 text-blue-700 border-blue-200",
-    declined: "bg-stone-50 text-stone-400 border-stone-200",
-  };
-  const text = {
-    quoted: "Quoted", sent: "No reply yet", opened: "Opened",
-    replied: "Replied", declined: "Declined",
-  };
-  return (
-    <span className={`text-[10px] font-medium border px-1.5 py-0.5 rounded ${map[status] ?? map.sent}`}>
-      {text[status] ?? status}
-    </span>
-  );
+function Status({ row }) {
+  if (row.quote?.stale) return <Chip tone="warn">needs repricing</Chip>;
+  if (row.quote) return <Chip tone="good">replied</Chip>;
+  if (row.chaseCount > 0)
+    return <Chip tone="neutral">chased {row.chaseCount}×</Chip>;
+  return <Chip tone="neutral">no reply yet</Chip>;
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Card, Chip, IconBox, Ghost, I } from "./ui";
 
 export default function Inbox({ job, jobId }) {
   const send = useAction(api.agentmail.sendInvitations);
@@ -22,97 +23,64 @@ export default function Inbox({ job, jobId }) {
   };
 
   return (
-    <section className="mt-10">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-[11px] uppercase tracking-widest text-stone-400">
-            This project's inbox
-          </h2>
-          <p className="text-sm text-stone-600 mt-1 font-mono">
+    <Card>
+      <div className="flex flex-wrap items-center gap-4 px-5 py-4 border-b border-[#2A2A2A]">
+        <IconBox>{I.mail}</IconBox>
+        <div className="min-w-0">
+          <h2 className="text-[14.5px] font-semibold">This job's inbox</h2>
+          <p className="text-[12px] text-[#5A5A5A] mt-0.5 break-all">
             {job.inboxAddress ?? "not created yet"}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="ml-auto flex flex-wrap gap-2">
           {!job.inboxAddress && (
-            <button
-              onClick={() => run("inbox", () => ensure({ jobId }))}
-              disabled={!!busy}
-              className="text-xs font-medium border border-stone-300 px-3 py-2 rounded-md hover:bg-stone-50 disabled:opacity-40"
-            >
-              {busy === "inbox" ? "Creating..." : "Create inbox"}
-            </button>
+            <Ghost disabled={!!busy} onClick={() => run("inbox", () => ensure({ jobId }))}>
+              {busy === "inbox" ? "Creating…" : "Create inbox"}
+            </Ghost>
           )}
-          <button
-            onClick={() => run("invite", () => send({ jobId }))}
-            disabled={!!busy}
-            className="text-xs font-medium border border-stone-300 px-3 py-2 rounded-md hover:bg-stone-50 disabled:opacity-40"
-          >
-            {busy === "invite" ? "Sending..." : "Ask for prices"}
-          </button>
-          <button
-            onClick={() => run("chase", () => send({ jobId, chase: true }))}
-            disabled={!!busy}
-            className="text-xs font-medium border border-stone-300 px-3 py-2 rounded-md hover:bg-stone-50 disabled:opacity-40"
-          >
-            {busy === "chase" ? "Sending..." : "Chase who hasn't replied"}
-          </button>
-          <button
-            onClick={() => run("reprice", () => reprice({ jobId }))}
-            disabled={!!busy}
-            className="text-xs font-medium border border-stone-300 px-3 py-2 rounded-md hover:bg-stone-50 disabled:opacity-40"
-          >
-            {busy === "reprice" ? "Sending..." : "Ask affected companies to reprice"}
-          </button>
+          <Ghost disabled={!!busy} onClick={() => run("invite", () => send({ jobId }))}>
+            {busy === "invite" ? "Sending…" : "Ask for prices"}
+          </Ghost>
+          <Ghost disabled={!!busy} onClick={() => run("chase", () => send({ jobId, chase: true }))}>
+            {busy === "chase" ? "Sending…" : "Chase quiet ones"}
+          </Ghost>
+          <Ghost disabled={!!busy} onClick={() => run("reprice", () => reprice({ jobId }))}>
+            {busy === "reprice" ? "Sending…" : "Ask to reprice"}
+          </Ghost>
         </div>
       </div>
 
       {err && (
-        <div className="mb-4 text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-          {err}
-        </div>
+        <p className="px-5 pt-4 text-[12.5px] text-[#F87171]">{err}</p>
       )}
 
-      <div className="border border-stone-200 rounded-xl bg-white divide-y divide-stone-100">
+      <div className="px-5 py-2 divide-y divide-[#242424] max-h-[380px] overflow-y-auto">
         {threads?.length ? (
           threads.map((m) => (
-            <div key={m._id} className="px-5 py-3 flex gap-4">
-              <span
-                className={`mt-1 text-[10px] font-medium px-1.5 py-0.5 rounded h-fit shrink-0 ${
-                  m.direction === "in"
-                    ? "bg-blue-50 text-blue-700 border border-blue-200"
-                    : "bg-stone-50 text-stone-500 border border-stone-200"
-                }`}
-              >
-                {m.direction === "in" ? "IN" : "OUT"}
-              </span>
+            <div key={m._id} className="py-3.5 flex gap-4">
+              <Chip tone={m.direction === "in" ? "good" : "neutral"}>
+                {m.direction === "in" ? "in" : "out"}
+              </Chip>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-stone-900">
+                <p className="text-[13px]">
                   {m.direction === "in" ? m.firmName : `To ${m.firmName}`}
-                  <span className="font-normal text-stone-400">
-                    {" "}
-                    - {m.subject ?? "(no subject)"}
+                  <span className="text-[#5A5A5A]">
+                    {" · "}
+                    {m.subject ?? "(no subject)"}
                   </span>
                 </p>
-                <p className="text-xs text-stone-500 mt-1 line-clamp-2 whitespace-pre-line">
-                  {m.body.slice(0, 220)}
-                </p>
-                <p className="text-[11px] text-stone-400 mt-1">
-                  {new Date(m.createdAt).toLocaleString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+                <p className="text-[12.5px] text-[#A1A1A1] mt-1.5 leading-relaxed line-clamp-2 whitespace-pre-line">
+                  {m.body.slice(0, 200)}
                 </p>
               </div>
             </div>
           ))
         ) : (
-          <p className="px-5 py-6 text-sm text-stone-400">
-            No email yet. Create the inbox, then ask the companies for a price.
+          <p className="py-6 text-[12.5px] text-[#5A5A5A]">
+            No email yet. Ask the companies for a price to begin.
           </p>
         )}
       </div>
-    </section>
+    </Card>
   );
 }

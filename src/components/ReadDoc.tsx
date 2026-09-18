@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useAction, useQuery } from "convex/react";
+import { useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Card, IconBox, Primary, I } from "./ui";
 
 export default function ReadDoc({ jobId, rows }) {
   const read = useAction(api.firecrawl.readQuoteDocument);
@@ -15,15 +16,13 @@ export default function ReadDoc({ jobId, rows }) {
     setBusy(true);
     setErr("");
     setMsg("");
+    const name = rows.find((x) => x.firmId === firmId)?.firmName ?? "That company";
     try {
-      const name = rows.find((x) => x.firmId === firmId)?.firmName ?? "that company";
       const r = await read({ jobId, firmId, url });
       setMsg(
-        `${name}: read ${r.total != null ? "$" + r.total.toLocaleString() : "no total"}` +
-          (r.exclusions.length
-            ? ` - not covered: ${r.exclusions.join(", ")}`
-            : "") +
-          (r.needsReview ? " (flagged for review)" : "")
+        `${name}: ${r.total != null ? "$" + r.total.toLocaleString() : "no total found"}` +
+          (r.exclusions.length ? `, leaving out ${r.exclusions.join(", ")}` : "") +
+          (r.needsReview ? ". Worth checking by hand." : "")
       );
       setUrl("");
     } catch (e) {
@@ -33,19 +32,23 @@ export default function ReadDoc({ jobId, rows }) {
   };
 
   return (
-    <section className="mt-10">
-      <h2 className="text-[11px] uppercase tracking-widest text-stone-400 mb-1">
-        Read a quote document
-      </h2>
-      <p className="text-xs text-stone-500 mb-4">
-        Choose who sent it, then paste the link. Emailed PDFs are read automatically.
-      </p>
+    <Card>
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-[#2A2A2A]">
+        <IconBox>{I.doc}</IconBox>
+        <div>
+          <h2 className="text-[14.5px] font-semibold">Read a quote document</h2>
+          <p className="text-[12px] text-[#5A5A5A] mt-0.5">
+            PDFs that arrive by email are read without being asked
+          </p>
+        </div>
+      </div>
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="p-5 flex flex-wrap gap-3">
         <select
           value={firmId}
           onChange={(e) => setFirmId(e.target.value)}
-          className="text-sm border-2 border-stone-400 rounded-md px-3 py-2 bg-white font-medium"
+          className="text-[13.5px] rounded-xl px-3.5 py-2.5 bg-[#242424] text-[#EDEDED]
+            border border-[#2E2E2E] hover:border-[#3A3A3A] transition"
         >
           {rows?.map((r) => (
             <option key={r.firmId} value={r.firmId}>
@@ -57,28 +60,25 @@ export default function ReadDoc({ jobId, rows }) {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && go()}
-          placeholder="https://.../quote.pdf"
-          className="flex-1 min-w-[280px] text-sm border border-stone-300 rounded-md px-3 py-2"
+          placeholder="https://…/quote.pdf"
+          className="flex-1 min-w-[260px] text-[13.5px] rounded-xl px-4 py-2.5
+            bg-[#242424] text-[#EDEDED] border border-[#2E2E2E]
+            focus:border-[#2F7FFF] outline-none transition"
         />
-        <button
-          onClick={go}
-          disabled={busy || !url}
-          className="text-xs font-medium bg-stone-900 text-white px-4 py-2 rounded-md hover:bg-stone-700 disabled:bg-stone-200 disabled:text-stone-400"
-        >
-          {busy ? "Reading..." : "Read it"}
-        </button>
+        <Primary onClick={go} disabled={busy || !url}>
+          {busy ? "Reading…" : "Read it"}
+        </Primary>
       </div>
 
-      {msg && (
-        <p className="mt-3 text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
-          {msg}
+      {(msg || err) && (
+        <p
+          className={`px-5 pb-5 text-[12.5px] ${
+            err ? "text-[#F87171]" : "text-[#4ADE80]"
+          }`}
+        >
+          {err || msg}
         </p>
       )}
-      {err && (
-        <p className="mt-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-          {err}
-        </p>
-      )}
-    </section>
+    </Card>
   );
 }

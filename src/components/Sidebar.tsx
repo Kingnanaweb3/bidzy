@@ -1,4 +1,5 @@
 import { I } from "./ui";
+import { Wordmark } from "./Logo";
 
 const NAV = [
   ["This job", [
@@ -32,13 +33,8 @@ export default function Sidebar({ job, page, onNavigate, open, onClose }) {
           ${open ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0
         `}
       >
-        <div className="h-9 flex items-center gap-2.5 px-2 mb-8">
-          <div className="h-9 w-9 rounded-xl bg-[#2F7FFF] grid place-items-center shrink-0">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round">
-              <path d="M4 18 12 5l8 13" /><path d="M8 18h8" />
-            </svg>
-          </div>
-          <span className="display text-[17px] font-bold tracking-tight">Bidzy</span>
+        <div className="h-9 flex items-center px-2 mb-8">
+          <Wordmark size={18} />
         </div>
 
         {NAV.map(([label, items]) => (

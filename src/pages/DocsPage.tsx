@@ -38,14 +38,14 @@ export default function DocsPage({ jobId }) {
   const withDocs = rows.filter((r) => r.quote?.lineItems?.length);
 
   return (
-    <div className="pt-6 space-y-6">
+    <div className="pt-5 sm:pt-6 space-y-5 sm:space-y-6">
       <Card>
         <CardHead
           icon={I.doc}
           title="Read a quote document"
           note="PDFs that arrive by email are read without being asked"
         />
-        <div className="p-6 flex flex-wrap gap-3">
+        <div className="p-4 sm:p-6 flex flex-wrap gap-3">
           <select
             value={active}
             onChange={(e) => setFirmId(e.target.value)}
@@ -83,9 +83,9 @@ export default function DocsPage({ jobId }) {
         ) : (
           <div className="divide-y divide-[#242424]">
             {withDocs.map((r) => (
-              <div key={r.firmId} className="px-6 py-5">
+              <div key={r.firmId} className="px-4 sm:px-6 py-5">
                 <div className="flex flex-wrap items-center gap-3 mb-4">
-                  <span className="text-[14px] font-semibold">{r.firmName}</span>
+                  <span className="display text-[14px] font-semibold">{r.firmName}</span>
                   <span className="num text-[14px] text-[#A1A1A1]">
                     {money(r.quote.total)}
                   </span>
@@ -95,10 +95,10 @@ export default function DocsPage({ jobId }) {
                 <div className="grid sm:grid-cols-2 gap-x-8 gap-y-2">
                   {r.quote.lineItems.map((li, i) => (
                     <div key={i} className="flex justify-between gap-4 h-6 items-center">
-                      <span className="text-[12.5px] text-[#A1A1A1] truncate">
+                      <span className="text-[11.5px] sm:text-[12.5px] text-[#A1A1A1] truncate">
                         {li.label}
                       </span>
-                      <span className="num text-[12.5px] text-[#C9C9C9] shrink-0">
+                      <span className="num text-[11.5px] sm:text-[12.5px] text-[#C9C9C9] shrink-0">
                         {money(li.amount)}
                       </span>
                     </div>

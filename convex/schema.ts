@@ -78,7 +78,8 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_job", ["jobId"])
-    .index("by_thread", ["threadId"]),
+    .index("by_thread", ["threadId"])
+    .index("by_message", ["messageId"]),
 
   events: defineTable({
     projectId: v.id("projects"),

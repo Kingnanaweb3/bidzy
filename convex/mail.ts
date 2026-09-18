@@ -131,6 +131,16 @@ export const handleInbound = internalMutation({
     ),
   },
   handler: async (ctx, args) => {
+    // The same delivery can arrive more than once. Recording the message
+    // is what makes the job resumable, so it must happen exactly once.
+    if (args.messageId) {
+      const seen = await ctx.db
+        .query("messages")
+        .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
+        .first();
+      if (seen) return { duplicate: true, already: "seen" };
+    }
+
     const addr = args.fromAddress.toLowerCase().trim();
     const firm = await ctx.db
       .query("firms")

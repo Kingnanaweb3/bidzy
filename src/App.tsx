@@ -21,6 +21,7 @@ const TITLES = {
 
 export default function App() {
   const [page, setPage] = useState("compare");
+  const [navOpen, setNavOpen] = useState(false);
   const projects = useQuery(api.projects.list);
   const project = projects?.[0];
   const jobs = useQuery(
@@ -37,15 +38,23 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#171717] lg:p-3">
       <div className="lg:flex lg:gap-3">
-        <Sidebar project={project} job={job} page={page} onNavigate={setPage} />
-        <div className="flex-1 min-w-0 bg-[#1A1A1A] lg:rounded-3xl lg:border lg:border-[#2A2A2A] overflow-hidden">
+        <Sidebar
+            project={project}
+            job={job}
+            page={page}
+            onNavigate={setPage}
+            open={navOpen}
+            onClose={() => setNavOpen(false)}
+          />
+        <div className="flex-1 min-w-0 bg-[#1A1A1A] lg:rounded-3xl lg:border lg:border-[#2A2A2A] lg:overflow-hidden">
           <Header
             project={project}
             title={title}
             note={note}
             showScopeAction={page === "compare"}
+            onMenu={() => setNavOpen(true)}
           />
-          <main className="px-6 pb-8">
+          <main className="px-4 sm:px-6 pb-8">
             {!job ? (
               <Splash text="No job on this project yet." />
             ) : page === "compare" ? (

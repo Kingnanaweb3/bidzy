@@ -10,6 +10,8 @@ const DOT = {
   reply_received: "bg-[#60A5FA]",
   reprice_requested: "bg-[#60A5FA]",
   parse_failed: "bg-[#F87171]",
+  chase_sent: "bg-[#60A5FA]",
+  gave_up: "bg-[#F87171]",
 };
 
 export default function Feed({ projectId, limit = 30, full }) {
@@ -21,7 +23,7 @@ export default function Feed({ projectId, limit = 30, full }) {
       {events && events.length === 0 ? (
         <Empty>Nothing yet. Ask the companies for a price to begin.</Empty>
       ) : (
-        <ol className={`px-6 py-5 space-y-5 ${full ? "" : "max-h-[548px] overflow-y-auto"}`}>
+        <ol className={`px-4 sm:px-6 py-5 space-y-5 ${full ? "" : "max-h-[548px] overflow-y-auto"}`}>
           {events?.map((e) => (
             <li key={e._id} className="flex gap-3">
               <span
@@ -30,7 +32,7 @@ export default function Feed({ projectId, limit = 30, full }) {
                 }`}
               />
               <div className="min-w-0">
-                <p className="text-[12.5px] text-[#C9C9C9] leading-5">{e.summary}</p>
+                <p className="text-[12px] sm:text-[12.5px] text-[#C9C9C9] leading-5">{e.summary}</p>
                 <p className="text-[11px] text-[#5A5A5A] mt-1 leading-4">
                   {when(e.createdAt)}
                 </p>

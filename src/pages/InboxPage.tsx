@@ -7,6 +7,7 @@ export default function InboxPage({ job, jobId }) {
   const send = useAction(api.agentmail.sendInvitations);
   const reprice = useAction(api.agentmail.requestReprice);
   const ensure = useAction(api.agentmail.ensureInbox);
+  const autoChase = useAction(api.chaseNow.run);
   const threads = useQuery(api.mail.threadsByJob, { jobId });
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
@@ -26,14 +27,14 @@ export default function InboxPage({ job, jobId }) {
   const selected = threads?.find((m) => m._id === open) ?? threads?.[0];
 
   return (
-    <div className="pt-6 space-y-6">
+    <div className="pt-5 sm:pt-6 space-y-5 sm:space-y-6">
       <Card>
         <CardHead
           icon={I.mail}
           title={job.inboxAddress ?? "No inbox yet"}
           note="Companies reply to this address like any other email"
           right={
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               {!job.inboxAddress && (
                 <Ghost disabled={!!busy} onClick={() => run("inbox", () => ensure({ jobId }))}>
                   {busy === "inbox" ? "Creating…" : "Create inbox"}
@@ -45,6 +46,9 @@ export default function InboxPage({ job, jobId }) {
               <Ghost disabled={!!busy} onClick={() => run("chase", () => send({ jobId, chase: true }))}>
                 {busy === "chase" ? "Sending…" : "Chase quiet ones"}
               </Ghost>
+              <Ghost disabled={!!busy} onClick={() => run("auto", () => autoChase({}))}>
+                {busy === "auto" ? "Running…" : "Run today's chase"}
+              </Ghost>
               <Ghost disabled={!!busy} onClick={() => run("reprice", () => reprice({ jobId }))}>
                 {busy === "reprice" ? "Sending…" : "Ask to reprice"}
               </Ghost>
@@ -54,7 +58,7 @@ export default function InboxPage({ job, jobId }) {
         {err && <p className="px-6 py-4 text-[12.5px] text-[#F87171]">{err}</p>}
       </Card>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[380px_minmax(0,1fr)] gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-5 sm:gap-6">
         <Card className="h-fit">
           <CardHead icon={I.mail} title="Messages" note={`${threads?.length ?? 0} in this thread`} />
           {threads && threads.length === 0 ? (
@@ -73,7 +77,7 @@ export default function InboxPage({ job, jobId }) {
                       <Chip tone={m.direction === "in" ? "good" : "neutral"}>
                         {m.direction === "in" ? "in" : "out"}
                       </Chip>
-                      <span className="text-[13px] font-medium truncate">
+                      <span className="display text-[12.5px] sm:text-[13px] font-medium truncate">
                         {m.firmName}
                       </span>
                       <span className="ml-auto text-[11px] text-[#5A5A5A] shrink-0">
@@ -101,7 +105,7 @@ export default function InboxPage({ job, jobId }) {
             }
           />
           {selected ? (
-            <pre className="px-6 py-6 text-[13px] text-[#C9C9C9] leading-6 whitespace-pre-wrap font-sans">
+            <pre className="px-4 sm:px-6 py-5 sm:py-6 text-[13px] text-[#C9C9C9] leading-6 whitespace-pre-wrap font-sans">
               {selected.body}
             </pre>
           ) : (

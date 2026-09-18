@@ -15,7 +15,7 @@ export default function BudgetPage({ jobId }) {
   const worst = spread.length ? Math.max(...spread) : null;
 
   return (
-    <div className="pt-6 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6">
+    <div className="pt-5 sm:pt-6 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-5 sm:gap-6">
       <Card>
         <CardHead
           icon={I.wallet}
@@ -25,8 +25,8 @@ export default function BudgetPage({ jobId }) {
         {!winner ? (
           <Empty>No valid price to budget against yet.</Empty>
         ) : (
-          <div className="p-6">
-            <p className="num text-[38px] font-bold tracking-tight leading-none text-[#4ADE80]">
+          <div className="p-4 sm:p-6">
+            <p className="num text-[32px] sm:text-[38px] font-bold tracking-tight leading-none text-[#4ADE80]">
               {money(winner.quote.comparable)}
             </p>
             <p className="text-[12.5px] text-[#A1A1A1] mt-3 leading-5">
@@ -39,8 +39,8 @@ export default function BudgetPage({ jobId }) {
             <div className="mt-7 divide-y divide-[#242424] border-t border-[#242424]">
               {winner.quote.lineItems.map((li, i) => (
                 <div key={i} className="h-11 flex items-center justify-between gap-4">
-                  <span className="text-[13px] text-[#A1A1A1] truncate">{li.label}</span>
-                  <span className="num text-[13px] text-[#C9C9C9] shrink-0">
+                  <span className="text-[12px] sm:text-[13px] text-[#A1A1A1] truncate">{li.label}</span>
+                  <span className="num text-[12px] sm:text-[13px] text-[#C9C9C9] shrink-0">
                     {money(li.amount)}
                   </span>
                 </div>
@@ -56,7 +56,7 @@ export default function BudgetPage({ jobId }) {
                 </div>
               )}
               <div className="h-14 flex items-center justify-between gap-4">
-                <span className="text-[13.5px] font-semibold">Total to budget</span>
+                <span className="display text-[13.5px] font-semibold">Total to budget</span>
                 <span className="num text-[16px] font-bold">
                   {money(winner.quote.comparable)}
                 </span>
@@ -68,7 +68,7 @@ export default function BudgetPage({ jobId }) {
 
       <Card className="h-fit">
         <CardHead icon={I.alert} title="What picking wrong would cost" />
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-5">
           <Row
             label="Cheapest real cost"
             value={money(d.lowest)}

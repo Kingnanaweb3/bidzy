@@ -10,7 +10,7 @@ export default function Stats({ jobId }) {
     d.lowest != null && d.headlineLowest != null ? d.lowest - d.headlineLowest : null;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
       <Stat
         icon={I.scale}
         label="Best real cost"
@@ -58,10 +58,10 @@ export default function Stats({ jobId }) {
 
 function Stat({ icon, label, value, foot, chip, accent, dim }) {
   return (
-    <Card className="p-6 flex flex-col">
+    <Card className="p-5 sm:p-6 flex flex-col">
       <div className="h-9 flex items-center gap-3 mb-5">
         <IconBox>{icon}</IconBox>
-        <span className="text-[13.5px] font-semibold">{label}</span>
+        <span className="text-[12.5px] sm:text-[13.5px] font-semibold">{label}</span>
       </div>
       <p
         className={`num text-[30px] font-bold tracking-tight leading-9 ${
@@ -71,7 +71,7 @@ function Stat({ icon, label, value, foot, chip, accent, dim }) {
         {value}
       </p>
       <div className="mt-3 space-y-2">
-        <div className="h-[18px] text-[12.5px] text-[#A1A1A1] truncate">
+        <div className="h-[18px] text-[11.5px] sm:text-[12.5px] text-[#A1A1A1] truncate">
           {foot}
         </div>
         <div className="h-[22px] flex items-center">{chip}</div>

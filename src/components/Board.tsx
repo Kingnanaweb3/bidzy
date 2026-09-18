@@ -1,6 +1,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Card, CardHead, Chip, I, money } from "./ui";
+import BoardMobile from "./BoardMobile";
 
 export default function Board({ jobId }) {
   const d = useQuery(api.jobs.board, { jobId });
@@ -30,8 +31,8 @@ export default function Board({ jobId }) {
       />
 
       {(lowestMoved || headlineMisleads) && (
-        <div className="mx-6 mt-6 rounded-xl bg-[#2E2410] border border-[#443415] px-4 py-3.5">
-          <p className="text-[13.5px] text-[#FBBF24] leading-6">
+        <div className="mx-4 sm:mx-6 mt-5 sm:mt-6 rounded-xl bg-[#2E2410] border border-[#443415] px-4 py-3.5">
+          <p className="text-[12.5px] sm:text-[13.5px] text-[#FBBF24] leading-5 sm:leading-6">
             {lowestMoved ? (
               <>
                 You changed the job, so {staleCount} price
@@ -51,8 +52,8 @@ export default function Board({ jobId }) {
         </div>
       )}
 
-      <div className="overflow-x-auto p-6">
-        <table className="w-full table-fixed border-collapse min-w-[760px]">
+      <div className="hidden md:block overflow-x-auto p-4 sm:p-6">
+        <table className="w-full table-fixed border-collapse min-w-[680px]">
           <colgroup>
             <col style={{ width: `${labelW}%` }} />
             {rows.map((r) => (
@@ -73,7 +74,7 @@ export default function Board({ jobId }) {
               {rows.map((r) => (
                 <th key={r.firmId} className="align-bottom text-left pb-5 pl-5">
                   <div
-                    className={`h-10 text-[14px] font-semibold leading-5 ${
+                    className={`display h-10 text-[14px] font-semibold leading-5 ${
                       r.quote?.stale ? "text-[#5A5A5A]" : "text-[#EDEDED]"
                     }`}
                   >
@@ -237,6 +238,10 @@ export default function Board({ jobId }) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="md:hidden">
+        <BoardMobile d={d} />
       </div>
     </Card>
   );

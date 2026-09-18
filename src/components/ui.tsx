@@ -1,5 +1,5 @@
-export const PAD = "px-6";
-export const HEAD_H = "h-[64px]";
+export const PAD = "px-4 sm:px-6";
+export const HEAD_H = "min-h-[58px] sm:min-h-[64px] py-3 sm:py-0";
 
 export function Card({ children, className = "" }) {
   return (
@@ -13,12 +13,12 @@ export function Card({ children, className = "" }) {
 // sitting side by side line up on the same baselines.
 export function CardHead({ icon, title, note, right }) {
   return (
-    <div className={`${HEAD_H} ${PAD} flex items-center gap-3 border-b border-[#2A2A2A]`}>
+    <div className={`${HEAD_H} ${PAD} flex items-center gap-3 border-b border-[#2A2A2A] flex-wrap sm:flex-nowrap`}>
       {icon && <IconBox>{icon}</IconBox>}
       <div className="min-w-0">
-        <h2 className="text-[14px] font-semibold leading-5">{title}</h2>
+        <h2 className="text-[13px] sm:text-[14px] font-semibold leading-5">{title}</h2>
         {note && (
-          <p className="text-[12px] text-[#5A5A5A] leading-4 mt-0.5 truncate">
+          <p className="text-[11px] sm:text-[12px] text-[#5A5A5A] leading-4 mt-0.5 truncate">
             {note}
           </p>
         )}
@@ -47,7 +47,7 @@ export function Chip({ children, tone = "neutral" }) {
 
 export function IconBox({ children }) {
   return (
-    <div className="h-9 w-9 rounded-xl bg-[#2A2A2A] grid place-items-center text-[#A1A1A1] shrink-0">
+    <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-[#2A2A2A] grid place-items-center text-[#A1A1A1] shrink-0">
       {children}
     </div>
   );
@@ -58,7 +58,7 @@ export function Primary({ children, onClick, disabled }) {
     <button
       onClick={onClick}
       disabled={disabled}
-      className="h-10 px-4 rounded-xl text-[13px] font-semibold bg-[#2F7FFF] text-white
+      className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl text-[12.5px] sm:text-[13px] font-semibold bg-[#2F7FFF] text-white
         hover:bg-[#1F6FEF] transition disabled:bg-[#2A2A2A] disabled:text-[#5A5A5A]"
     >
       {children}
@@ -71,7 +71,7 @@ export function Ghost({ children, onClick, disabled }) {
     <button
       onClick={onClick}
       disabled={disabled}
-      className="h-10 px-4 rounded-xl text-[13px] font-medium bg-[#242424] text-[#C9C9C9]
+      className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl text-[12.5px] sm:text-[13px] font-medium bg-[#242424] text-[#C9C9C9]
         border border-[#2E2E2E] hover:bg-[#2C2C2C] hover:text-white transition
         disabled:opacity-40"
     >

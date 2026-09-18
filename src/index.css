@@ -8,11 +8,24 @@ html, body { background: #171717; }
 body {
   margin: 0;
   color: #EDEDED;
-  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-.num { font-variant-numeric: tabular-nums; }
+/* Inter carries anything that acts as a headline: page titles, card
+   headings, company names, and every figure. DM Sans reads better at
+   small sizes, so it keeps the running text. */
+h1, h2, h3, th, .display {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.num {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+}
+
 
 ::selection { background: #1E3A5F; }
 *:focus-visible { outline: 2px solid #3B82F6; outline-offset: 2px; }

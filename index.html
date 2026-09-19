@@ -355,6 +355,37 @@
   }
 
 
+
+  /* hide the nav CTA on a phone — the hero already carries it */
+  @media (max-width:860px){ .nav .pill{display:none} }
+
+  /* reveal on scroll */
+  .r{opacity:0;transform:translateY(18px);
+     transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1)}
+  .r.in{opacity:1;transform:none}
+  .r-1{transition-delay:.06s}
+  .r-2{transition-delay:.12s}
+  .r-3{transition-delay:.18s}
+  @media (prefers-reduced-motion:reduce){
+    .r{opacity:1;transform:none;transition:none}
+  }
+
+  /* the steps swipe sideways on a phone */
+  @media (max-width:759px){
+    .steps{
+      display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+      gap:14px;padding-inline:16px;margin-inline:-16px;
+      scrollbar-width:none;-ms-overflow-style:none;
+    }
+    .steps::-webkit-scrollbar{display:none}
+    .steps li{flex:0 0 78%;scroll-snap-align:start}
+    .swipe-hint{
+      display:flex;align-items:center;gap:8px;margin-top:14px;
+      font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+      text-transform:uppercase;color:#55534E;
+    }
+  }
+  @media (min-width:760px){ .swipe-hint{display:none} }
 </style>
 </head>
 <body>
@@ -441,7 +472,7 @@
 
 <section class="s" id="proof">
   <div class="wrap">
-    <div class="proof">
+    <div class="proof r">
       <div>
         <b class="num">$4,900</b>
         <p>of work the cheapest quote left out, priced from what the others charged for it</p>
@@ -464,10 +495,10 @@
 
 <section class="s" id="how" style="padding-top:clamp(88px,13vw,170px)">
   <div class="wrap">
-    <div class="eyebrow"><i></i><span>What it does</span></div>
-    <h2>Three things you would otherwise do yourself, badly, at midnight.</h2>
+    <div class="eyebrow r"><i></i><span>What it does</span></div>
+    <h2 class="r r-1">Three things you would otherwise do yourself, badly, at midnight.</h2>
 
-    <div class="cards">
+    <div class="cards r">
       <div class="card">
         <img class="card-img" src="/card-1.jpg" alt="" loading="lazy" decoding="async" />
         <span class="tag">01 — the chase</span>
@@ -492,11 +523,11 @@
 
 <section class="s" id="arithmetic" style="padding-top:clamp(88px,13vw,170px)">
   <div class="wrap">
-    <div class="eyebrow"><i></i><span>The arithmetic</span></div>
-    <h2>Crown quoted the lowest number and the highest price.</h2>
-    <p class="sub">Every exclusion is priced using what the other contractors charged for that same work. Nothing here is estimated — it is what this market costs, learned from the quotes on the board.</p>
+    <div class="eyebrow r"><i></i><span>The arithmetic</span></div>
+    <h2 class="r r-1">Crown quoted the lowest number and the highest price.</h2>
+    <p class="sub r r-2">Every exclusion is priced using what the other contractors charged for that same work. Nothing here is estimated — it is what this market costs, learned from the quotes on the board.</p>
 
-    <div class="sum">
+    <div class="sum r">
       <div class="sum-box">
         <span class="k">They quoted</span>
         <span class="v num">$11,900</span>
@@ -520,10 +551,10 @@
 
 <section class="s" id="steps" style="padding-top:clamp(88px,13vw,170px)">
   <div class="wrap">
-    <div class="eyebrow"><i></i><span>How it works</span></div>
-    <h2>You ask once. It works the job for as long as it takes.</h2>
+    <div class="eyebrow r"><i></i><span>How it works</span></div>
+    <h2 class="r r-1">You ask once. It works the job for as long as it takes.</h2>
 
-    <ol class="steps">
+    <ol class="steps r">
       <li>
         <img src="/step-1.jpg" alt="" loading="lazy" decoding="async" />
         <span class="n">01</span>
@@ -549,15 +580,16 @@
         <p>Every exclusion priced from what the others charged, every quote ranked by real cost, and a note when your decision makes one of them worthless.</p>
       </li>
     </ol>
+    <p class="swipe-hint">← swipe for the rest</p>
   </div>
 </section>
 
 <section class="s" id="limits" style="padding-top:clamp(88px,13vw,170px)">
   <div class="wrap">
-    <div class="eyebrow"><i></i><span>What it does not do</span></div>
-    <h2>The parts that are honest about being unfinished.</h2>
+    <div class="eyebrow r"><i></i><span>What it does not do</span></div>
+    <h2 class="r r-1">The parts that are honest about being unfinished.</h2>
 
-    <div class="limits">
+    <div class="limits r">
       <div>
         <b>Licence checks are NYC only</b>
         <p>It queries the Department of Consumer and Worker Protection register directly. A company not on that register comes back unverified rather than assumed fine.</p>
@@ -580,10 +612,10 @@
 
 <section class="s" style="padding-top:clamp(88px,13vw,170px)">
   <div class="wrap-narrow">
-    <div class="eyebrow"><i></i><span>Questions</span></div>
-    <h2>Reasonable objections.</h2>
+    <div class="eyebrow r"><i></i><span>Questions</span></div>
+    <h2 class="r r-1">Reasonable objections.</h2>
 
-    <div class="faq">
+    <div class="faq r">
       <details>
         <summary>Isn't this just a form?</summary>
         <p>A form requires the contractor to fill it in, which is exactly the thing they will not do. Bidzy sends an ordinary email and reads an ordinary reply. The contractor does nothing different from what they already do fifty times a week.</p>
@@ -658,6 +690,18 @@
 </footer>
 
 <script>
+
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    }
+  }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+
+  document.querySelectorAll('.r').forEach((el) => io.observe(el));
+
   const copy = document.getElementById('copy');
   const label = document.getElementById('copy-label');
   copy.addEventListener('click', async () => {

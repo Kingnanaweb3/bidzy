@@ -82,8 +82,28 @@ export default function Board({ jobId }) {
                   </div>
                   <div className="h-[26px] pt-1 flex items-center gap-1.5">
                     <Status row={r} />
+                    {r.licenceStatus === "valid" && r.licence?.sourceUrl && (
+                      <a
+                        href={r.licence.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={r.licence.evidence ?? "Licence verified"}
+                      >
+                        <Chip tone="good">licence checked</Chip>
+                      </a>
+                    )}
                     {r.licenceStatus === "expired" && (
-                      <Chip tone="bad">expired</Chip>
+                      <a
+                        href={r.licence?.sourceUrl ?? undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={r.licence?.evidence ?? "Licence shows as expired"}
+                      >
+                        <Chip tone="bad">licence expired</Chip>
+                      </a>
+                    )}
+                    {r.licenceStatus === "not_found" && (
+                      <Chip tone="neutral">unverified</Chip>
                     )}
                   </div>
                 </th>

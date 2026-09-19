@@ -12,6 +12,8 @@ const DOT = {
   parse_failed: "bg-[#F87171]",
   chase_sent: "bg-[#60A5FA]",
   gave_up: "bg-[#F87171]",
+  licence_flag: "bg-[#F87171]",
+  licence_checked: "bg-[#4ADE80]",
 };
 
 export default function Feed({ projectId, limit = 30, full }) {

@@ -38,7 +38,10 @@ export default function BoardMobile({ d }) {
                 <div className="flex flex-wrap items-center gap-1.5 mt-2">
                   <Status row={r} />
                   {r.licenceStatus === "expired" && (
-                    <Chip tone="bad">expired</Chip>
+                    <Chip tone="bad">licence expired</Chip>
+                  )}
+                  {r.licenceStatus === "not_found" && (
+                    <Chip tone="neutral">unverified</Chip>
                   )}
                 </div>
               </div>

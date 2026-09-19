@@ -30,10 +30,16 @@ export const board = query({
     );
     const firmById = new Map(firms.filter(Boolean).map((f) => [f._id, f]));
 
-    // everything about price meaning comes from the component
+    // everything about price meaning comes from one component
     const analysis = await ctx.runQuery(components.quoteEngine.quotes.compare, {
       jobKey: String(jobId),
     });
+
+    // whether they're allowed to do the work comes from another
+    const licences = await ctx.runQuery(components.compliance.licences.forJob, {
+      partyKeys: invitations.map((i) => String(i.firmId)),
+    });
+    const licenceByParty = new Map(licences.map((l) => [l.partyKey, l]));
 
     const quoteByParty = new Map(analysis.rows.map((r) => [r.partyKey, r]));
 
@@ -44,7 +50,11 @@ export const board = query({
         firmId: inv.firmId,
         firmName: firm?.name ?? "Unknown",
         firmEmail: firm?.email ?? "",
-        licenceStatus: firm?.licenceStatus ?? "unknown",
+        licence: licenceByParty.get(String(inv.firmId)) ?? null,
+        licenceStatus:
+          licenceByParty.get(String(inv.firmId))?.status ??
+          firm?.licenceStatus ??
+          "unknown",
         status: q ? "quoted" : inv.status,
         chaseCount: inv.chaseCount,
         quote: q

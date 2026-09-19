@@ -9,6 +9,7 @@ export default function InboxPage({ job, jobId }) {
   const ensure = useAction(api.agentmail.ensureInbox);
   const autoChase = useAction(api.chaseNow.run);
   const attach = useMutation(api.mail.attachSender);
+  const verifyAll = useAction(api.verify.checkAll);
   const board = useQuery(api.jobs.board, { jobId });
   const threads = useQuery(api.mail.threadsByJob, { jobId });
   const [busy, setBusy] = useState("");
@@ -53,6 +54,9 @@ export default function InboxPage({ job, jobId }) {
               </Ghost>
               <Ghost disabled={!!busy} onClick={() => run("reprice", () => reprice({ jobId }))}>
                 {busy === "reprice" ? "Sending…" : "Ask to reprice"}
+              </Ghost>
+              <Ghost disabled={!!busy} onClick={() => run("verify", () => verifyAll({ jobId }))}>
+                {busy === "verify" ? "Checking…" : "Check licences"}
               </Ghost>
             </div>
           }

@@ -55,8 +55,18 @@ http.route({
   handler: httpAction(async () => new Response("bidzy webhook alive")),
 });
 
-// Serve the built frontend. Registered last so the webhook route above
-// wins before the SPA fallback matches everything.
+// The product lives at /app; the landing page is the root. Both are real
+// files, so the clean URL has to be mapped to one of them explicitly.
+http.route({
+  path: "/app",
+  method: "GET",
+  handler: httpAction(async () =>
+    Response.redirect("/app/index.html", 302)
+  ),
+});
+
+// Serve the built frontend. Registered last so the routes above win
+// before the SPA fallback matches everything.
 registerStaticRoutes(http, components.staticHosting, { spaFallback: true });
 
 export default http;

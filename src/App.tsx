@@ -36,7 +36,7 @@ export default function App() {
   const [title, note] = TITLES[page];
 
   return (
-    <div className="min-h-screen bg-[#171717] lg:p-3">
+    <div className="min-h-screen bg-[#0C0C0C] lg:p-3">
       <div className="lg:flex lg:gap-3">
         <Sidebar
             project={project}
@@ -46,7 +46,7 @@ export default function App() {
             open={navOpen}
             onClose={() => setNavOpen(false)}
           />
-        <div className="flex-1 min-w-0 bg-[#1A1A1A] lg:rounded-3xl lg:border lg:border-[#2A2A2A] lg:overflow-hidden">
+        <div className="flex-1 min-w-0 bg-[#121212] lg:rounded-3xl lg:border lg:border-[#242422] lg:overflow-hidden">
           <Header
             project={project}
             title={title}
@@ -79,7 +79,7 @@ export default function App() {
 
 function Splash({ text }) {
   return (
-    <div className="min-h-[60vh] grid place-items-center text-[#5A5A5A] text-sm">
+    <div className="min-h-[60vh] grid place-items-center text-[#6E6C66] text-sm">
       {text}
     </div>
   );

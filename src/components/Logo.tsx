@@ -24,7 +24,7 @@ export function Wordmark({ size = 18 }) {
     <span className="flex items-center gap-2.5">
       <Mark size={size * 1.15} />
       <span
-        className="display font-bold tracking-tight"
+        className="display font-semibold"
         style={{ fontSize: size }}
       >
         Bidzy

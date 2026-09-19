@@ -30,12 +30,12 @@ export default function Feed({ projectId, limit = 30, full }) {
             <li key={e._id} className="flex gap-3">
               <span
                 className={`mt-[7px] h-1.5 w-1.5 rounded-full shrink-0 ${
-                  DOT[e.type] ?? "bg-[#3A3A3A]"
+                  DOT[e.type] ?? "bg-[#2E2E2B]"
                 }`}
               />
               <div className="min-w-0">
-                <p className="text-[12px] sm:text-[12.5px] text-[#C9C9C9] leading-5">{e.summary}</p>
-                <p className="text-[11px] text-[#5A5A5A] mt-1 leading-4">
+                <p className="text-[length:var(--step--1)] sm:text-[length:var(--step--1)] text-[#D6D4CC] leading-5">{e.summary}</p>
+                <p className="text-[length:var(--step--2)] text-[#6E6C66] mt-1 leading-4">
                   {when(e.createdAt)}
                 </p>
               </div>

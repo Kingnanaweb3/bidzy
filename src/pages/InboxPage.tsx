@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Card, CardHead, Chip, Ghost, Empty, I, when } from "../components/ui";
+import { Card, CardHead, Chip, Ghost, Empty, Meta, I, when, ago } from "../components/ui";
 
 export default function InboxPage({ job, jobId }) {
   const send = useAction(api.agentmail.sendInvitations);
@@ -34,7 +34,7 @@ export default function InboxPage({ job, jobId }) {
       <Card>
         <CardHead
           icon={I.mail}
-          title={job.inboxAddress ?? "No inbox yet"}
+          title={<span className="mono">{job.inboxAddress ?? "No inbox yet"}</span>}
           note="Companies reply to this address like any other email"
           right={
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
@@ -61,7 +61,7 @@ export default function InboxPage({ job, jobId }) {
             </div>
           }
         />
-        {err && <p className="px-6 py-4 text-[12.5px] text-[#F87171]">{err}</p>}
+        {err && <p className="px-6 py-4 text-[length:var(--step--1)] text-[#F87171]">{err}</p>}
       </Card>
 
       <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-5 sm:gap-6">
@@ -70,13 +70,13 @@ export default function InboxPage({ job, jobId }) {
           {threads && threads.length === 0 ? (
             <Empty>No email yet. Use “Ask for prices” above and the replies land here.</Empty>
           ) : (
-            <ul className="divide-y divide-[#242424] max-h-[560px] overflow-y-auto">
+            <ul className="divide-y divide-[#1C1C1A] max-h-[560px] overflow-y-auto">
               {threads?.map((m) => (
                 <li key={m._id}>
                   <button
                     onClick={() => setOpen(m._id)}
                     className={`w-full text-left px-6 py-4 transition ${
-                      selected?._id === m._id ? "bg-[#242424]" : "hover:bg-[#1C1C1C]"
+                      selected?._id === m._id ? "bg-[#1C1C1A]" : "hover:bg-[#1C1C1C]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5 mb-1.5">
@@ -84,18 +84,21 @@ export default function InboxPage({ job, jobId }) {
                         {m.direction === "in" ? "in" : "out"}
                       </Chip>
                       <span
-                        className={`display text-[12.5px] sm:text-[13px] font-medium truncate ${
+                        className={`display text-[length:var(--step--1)] sm:text-[length:var(--step-0)] font-medium truncate ${
                           m.unknownSender ? "text-[#60A5FA]" : ""
                         }`}
                       >
                         {m.firmName}
                       </span>
-                      <span className="ml-auto text-[11px] text-[#5A5A5A] shrink-0">
+                      <span className="ml-auto text-[length:var(--step--2)] text-[#6E6C66] shrink-0">
                         {when(m.createdAt)}
                       </span>
                     </div>
-                    <p className="text-[12.5px] text-[#A1A1A1] truncate leading-5">
+                    <p className="text-[length:var(--step--1)] text-[#B5B3AA] truncate leading-5">
                       {m.subject ?? "(no subject)"}
+                    </p>
+                    <p className="mono text-[length:var(--step--2)] text-[#6E6C66] truncate mt-1">
+                      {m.direction === "in" ? m.fromAddress : m.toAddress}
                     </p>
                   </button>
                 </li>
@@ -122,7 +125,7 @@ export default function InboxPage({ job, jobId }) {
             />
           )}
           {selected ? (
-            <pre className="px-4 sm:px-6 py-5 sm:py-6 text-[13px] text-[#C9C9C9] leading-6 whitespace-pre-wrap font-sans">
+            <pre className="px-4 sm:px-6 py-5 sm:py-6 text-[length:var(--step-0)] text-[#D6D4CC] leading-6 whitespace-pre-wrap font-sans">
               {selected.body}
             </pre>
           ) : (
@@ -141,15 +144,15 @@ function UnknownSender({ message, rows, onAttach }) {
 
   return (
     <div className="mx-4 sm:mx-6 mt-5 rounded-xl bg-[#12243D] border border-[#1E3A5F] px-4 py-3.5">
-      <p className="text-[12.5px] text-[#60A5FA] leading-5">
-        We don't recognise {message.fromAddress}. Their price won't be
+      <p className="text-[length:var(--step--1)] text-[#60A5FA] leading-5">
+        We don't recognise <span className="mono">{message.fromAddress}</span>. Their price won't be
         compared until you say who they are.
       </p>
       <div className="flex flex-wrap gap-2 mt-3">
         <select
           value={choice}
           onChange={(e) => setChoice(e.target.value)}
-          className="h-9 text-[12.5px] rounded-lg px-3 bg-[#1A1A1A] text-[#EDEDED] border border-[#2E2E2E]"
+          className="h-9 text-[length:var(--step--1)] rounded-lg px-3 bg-[#121212] text-[#FBFBF7] border border-[#262624]"
         >
           <option value="">Add as a new company</option>
           {rows.map((r) => (
@@ -168,7 +171,7 @@ function UnknownSender({ message, rows, onAttach }) {
             });
             setBusy(false);
           }}
-          className="h-9 px-3.5 rounded-lg text-[12.5px] font-medium bg-[#2F7FFF] text-white hover:bg-[#1F6FEF] transition disabled:opacity-40"
+          className="h-9 px-3.5 rounded-lg text-[length:var(--step--1)] font-medium bg-[#2F7FFF] text-white hover:bg-[#1F6FEF] transition disabled:opacity-40"
         >
           {busy ? "Linking\u2026" : "Use this price"}
         </button>

@@ -1,22 +1,675 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bidzy — what the quote actually costs</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="theme-color" content="#171717" />
-    <meta name="description" content="An agent that chases contractor quotes over email, reads whatever comes back, and works out which price is actually cheapest." />
-    <meta property="og:title" content="Bidzy — the cheapest quote is rarely the cheapest job" />
-    <meta property="og:description" content="An agent that chases contractor quotes over email and works out the real cost." />
-    <meta property="og:image" content="/og.svg" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bidzy — the cheapest quote is rarely the cheapest job</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0C0C0C;
+    --ink:#FBFBF7;
+    --muted:#B5B3AA;
+    --line:rgba(255,255,255,.10);
+    --radius-lg:.5rem;
+    --accent:#2F7FFF;
+    --sans:'Geist',-apple-system,system-ui,sans-serif;
+    --mono:'Geist Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{overflow-x:clip}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-weight:400;
+    font-feature-settings:"cv02","cv03","cv04","cv11";
+    letter-spacing:-.5px;
+    font-optical-sizing:auto;
+    font-synthesis:none;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+
+  /* nav */
+  .nav{
+    position:fixed;inset-inline:0;top:0;z-index:50;
+    height:56px;display:flex;align-items:center;
+    padding:0 16px;
+    background:transparent;
+    transition:background 200ms,border-color 200ms;
+  }
+  @media (min-width:640px){ .nav{padding:0 32px} }
+  @media (min-width:1024px){ .nav{padding:0 30px} }
+  .nav.stuck{
+    background:rgba(12,12,12,.82);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink)}
+  .brand svg{display:block}
+  .brand span{font-size:15.5px;font-weight:500;line-height:24px}
+
+  .links{
+    margin-left:auto;display:flex;align-items:center;
+    gap:clamp(2px,0.6vw,10px);
+  }
+  .links a{
+    display:inline-flex;align-items:center;
+    height:34px;padding:0 11px;border-radius:999px;
+    font-size:14.5px;font-weight:450;line-height:24px;
+    color:var(--muted);text-decoration:none;
+    border:1px solid transparent;
+    transition:color 160ms,border-color 160ms,background 160ms;
+  }
+  .links a:hover{
+    color:var(--ink);
+    border-color:var(--line);
+    background:rgba(255,255,255,.03);
+  }
+  .links a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .pill{
+    display:inline-flex;align-items:center;gap:7px;
+    height:36px;padding:0 16px 0 13px;border-radius:999px;
+    background:#fff;color:#0C0C0C;
+    font-size:14.5px;font-weight:530;line-height:24px;text-decoration:none;
+    transition:transform 180ms,opacity 180ms;
+    margin-left:clamp(14px,1.8vw,28px);
+  }
+  .pill svg{flex:none}
+  .pill:hover{transform:translateY(-1px);opacity:.92}
+
+  .menu{
+    display:none;margin-left:auto;
+    width:40px;height:40px;border:0;background:transparent;
+    color:var(--ink);align-items:center;justify-content:center;cursor:pointer;
+  }
+
+  @media (max-width:860px){
+    .links{display:none}
+    .menu{display:flex}
+  }
+
+  /* hero */
+  .hero{
+    padding:144px 16px 32px;
+    display:flex;flex-direction:column;align-items:center;text-align:center;
+  }
+  @media (min-width:640px){ .hero{padding:184px 32px 40px} }
+  @media (min-width:1024px){ .hero{padding:208px 30px 48px} }
+
+  .hero-inner{width:100%;max-width:1600px;margin:0 auto;
+    display:flex;flex-direction:column;align-items:center;gap:20px}
+  @media (min-width:640px){ .hero-inner{gap:28px} }
+
+  h1{
+    font-size:36px;font-weight:400;line-height:.98;
+    letter-spacing:-.5px;text-wrap:balance;
+    max-width:72rem;margin:0 auto;
+  }
+  @media (min-width:640px){ h1{font-size:48px} }
+  @media (min-width:768px){ h1{font-size:60px} }
+  @media (min-width:1024px){ h1{font-size:76px} }
+
+  .lead{
+    font-size:16px;font-weight:400;line-height:2;
+    color:var(--muted);max-width:56rem;text-wrap:balance;
+  }
+  @media (min-width:640px){ .lead{font-size:20px} }
+
+  .cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;
+    gap:10px;margin-top:4px}
+  @media (min-width:640px){ .cta{gap:14px;margin-top:12px} }
+
+  .pill-lg{
+    display:inline-flex;align-items:center;gap:9px;
+    height:52px;padding:0 26px 0 22px;border-radius:999px;
+    font-size:16px;font-weight:530;line-height:24px;text-decoration:none;
+    transition:transform 180ms,opacity 180ms,background 180ms;
+  }
+  .pill-lg.solid{background:#fff;color:#0C0C0C}
+  .pill-lg.solid:hover{transform:translateY(-1px);opacity:.92}
+  .pill-lg.ghost{
+    background:transparent;color:var(--ink);
+    border:1px solid var(--line);
+  }
+  .pill-lg.ghost:hover{transform:translateY(-1px);background:rgba(255,255,255,.04)}
+  .pill-lg svg{flex:none}
+
+  .strip{
+    display:flex;align-items:center;gap:14px;
+    margin-top:12px;padding:14px 16px 14px 20px;
+    border:1px solid var(--line);border-radius:999px;
+    background:rgba(255,255,255,.02);
+    max-width:100%;
+  }
+  .strip code{
+    font-family:var(--mono);font-size:14px;font-weight:400;
+    letter-spacing:0;color:var(--muted);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .strip .dollar{font-family:var(--mono);color:#5A5A5A;font-size:14px}
+  .copy{
+    display:inline-flex;align-items:center;gap:6px;
+    background:none;border:0;cursor:pointer;
+    font-family:var(--sans);font-size:14px;font-weight:450;
+    color:var(--muted);transition:color 160ms;
+  }
+  .copy:hover{color:var(--ink)}
+
+  /* image band */
+  .band{position:relative;margin-top:clamp(40px,6vw,88px)}
+  .band-img{position:relative;width:100%;overflow:hidden}
+  .band-img img{
+    display:block;width:100%;height:clamp(320px,46vw,640px);
+    object-fit:cover;object-position:center 42%;
+    filter:saturate(.82) brightness(.78);
+  }
+  .band-img::after{
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background:
+      linear-gradient(to bottom,
+        var(--bg) 0%,
+        rgba(12,12,12,.35) 14%,
+        rgba(12,12,12,.30) 46%,
+        rgba(12,12,12,.88) 82%,
+        var(--bg) 100%),
+      radial-gradient(120% 70% at 50% 76%, rgba(12,12,12,.7) 0%, rgba(12,12,12,0) 62%);
+  }
+
+  /* the product, sitting on the photo */
+  .shot{
+    position:relative;z-index:2;
+    margin:clamp(-200px,-22vw,-90px) auto 0;
+    width:min(1160px,calc(100% - 24px));
+    border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;background:#1A1A1A;
+    box-shadow:0 40px 90px -40px rgba(0,0,0,.95);
+  }
+  .shot-bar{
+    height:34px;display:flex;align-items:center;gap:7px;
+    padding:0 13px;background:#151515;
+    border-bottom:1px solid var(--line);
+  }
+  .shot-bar i{width:10px;height:10px;border-radius:50%;background:#2E2E2E}
+  .shot img{display:block;width:100%}
+  .shot-note{
+    text-align:center;color:#5A5A5A;font-size:13px;
+    padding:36px 16px clamp(40px,6vw,96px);
+  }
+
+  /* temporary, so there is something to scroll against */
+  .placeholder{height:90vh;padding-top:80px;text-align:center;color:#3A3A3A;font-size:13px}
+
+  section.s{padding-inline:16px}
+  @media (min-width:640px){ section.s{padding-inline:32px} }
+  @media (min-width:1024px){ section.s{padding-inline:30px} }
+  .wrap{max-width:1160px;margin:0 auto}
+  .wrap-narrow{max-width:860px;margin:0 auto}
+
+  .eyebrow{display:flex;align-items:center;gap:9px;margin-bottom:18px}
+  .eyebrow i{height:3px;width:18px;border-radius:2px;background:var(--accent);display:block}
+  .eyebrow span{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6E6C66}
+
+  h2{font-size:clamp(26px,4.4vw,44px);font-weight:400;line-height:1.04;letter-spacing:-.5px;text-wrap:balance}
+  .sub{margin-top:18px;font-size:clamp(15px,1.4vw,18px);line-height:1.7;color:var(--muted);max-width:60ch;text-wrap:balance}
+
+  .proof{margin-top:clamp(24px,4vw,56px);border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr}
+  @media (min-width:900px){ .proof{grid-template-columns:repeat(4,1fr)} }
+  .proof div{padding:clamp(24px,3vw,40px) clamp(16px,2.2vw,32px);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  @media (min-width:900px){ .proof div{border-bottom:0} .proof div:last-child{border-right:0} }
+  @media (max-width:899px){ .proof div:nth-child(2n){border-right:0} .proof div:nth-child(n+3){border-bottom:0} }
+  .proof b{display:block;font-size:clamp(28px,4vw,42px);font-weight:400;letter-spacing:-1px;line-height:1}
+  .proof p{margin-top:12px;font-size:13.5px;line-height:1.55;color:var(--muted)}
+
+  .tension{padding-top:clamp(88px,13vw,180px);padding-bottom:clamp(88px,13vw,180px);text-align:center}
+  .tension h2{max-width:22ch;margin:0 auto}
+  .tension em{font-style:italic;color:#C8B48A}
+
+  .cards{display:grid;gap:14px;margin-top:clamp(32px,4vw,52px)}
+  @media (min-width:860px){ .cards{grid-template-columns:repeat(3,1fr)} }
+  .card{border:1px solid var(--line);border-radius:14px;padding:clamp(22px,2.4vw,30px);background:rgba(255,255,255,.015)}
+  
+  .card h3{font-size:17px;font-weight:500;letter-spacing:-.3px;margin-bottom:10px}
+  .card p{font-size:14px;line-height:1.7;color:var(--muted)}
+  .card .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#6E6C66;display:block;margin-bottom:14px}
+
+  .sum{margin-top:clamp(32px,4vw,52px);display:grid;gap:12px;align-items:stretch}
+  @media (min-width:760px){ .sum{grid-template-columns:1fr auto 1fr auto 1fr} }
+  .sum-box{
+    border:1px solid rgba(255,255,255,.09);border-radius:16px;
+    padding:clamp(20px,2.2vw,28px);
+    background:linear-gradient(160deg, rgba(255,255,255,.055), rgba(255,255,255,.015));
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 18px 40px -28px rgba(0,0,0,.9);
+  }
+  .sum-box .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#6E6C66}
+  .sum-box .v{display:block;margin-top:14px;font-size:clamp(26px,3.4vw,36px);font-weight:400;letter-spacing:-1px;line-height:1}
+  .sum-box .n{margin-top:12px;font-size:13px;line-height:1.6;color:var(--muted)}
+  
+  .sum-box.warn .v{color:#E0A85A}
+  
+  .sum-box.good .v{color:#5DD68E}
+  .sum-op{display:grid;place-items:center;color:#55534E;font-size:24px;padding:4px 0}
+
+  .limits{display:grid;gap:0;margin-top:clamp(28px,3.4vw,44px);border-top:1px solid var(--line)}
+  .limits div{padding:22px 0;border-bottom:1px solid var(--line);display:grid;gap:6px}
+  @media (min-width:760px){ .limits div{grid-template-columns:240px 1fr;gap:32px;align-items:baseline} }
+  .limits b{font-weight:450;font-size:15px}
+  .limits p{font-size:14px;line-height:1.65;color:var(--muted)}
+
+  .faq{margin-top:clamp(28px,3.4vw,44px);border-top:1px solid var(--line)}
+  .faq details{border-bottom:1px solid var(--line)}
+  .faq summary{list-style:none;cursor:pointer;padding:22px 40px 22px 0;position:relative;font-size:16px;font-weight:450;letter-spacing:-.2px}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::after{content:'+';position:absolute;right:6px;top:20px;color:#6E6C66;font-size:20px;font-weight:300}
+  .faq details[open] summary::after{content:'\2212'}
+  .faq p{padding:0 0 24px;font-size:14.5px;line-height:1.75;color:var(--muted);max-width:70ch}
+
+  .close{padding-top:clamp(88px,13vw,170px);padding-bottom:clamp(64px,8vw,110px);text-align:center}
+  .close h2{max-width:20ch;margin:0 auto}
+
+  footer{border-top:1px solid var(--line);padding:36px 16px 44px}
+  @media (min-width:640px){ footer{padding:36px 32px} }
+  .foot{max-width:1160px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:16px;font-size:13px;color:#6E6C66}
+  .foot a{color:var(--muted);text-decoration:none}
+  .foot a:hover{color:var(--ink)}
+  .foot .right{margin-left:auto;display:flex;gap:20px;flex-wrap:wrap}
+
+  footer{border-top:1px solid var(--line);padding:clamp(48px,6vw,72px) 16px 40px}
+  @media (min-width:640px){ footer{padding-inline:32px} }
+  @media (min-width:1024px){ footer{padding-inline:30px} }
+
+  .foot-top{
+    max-width:1160px;margin:0 auto;
+    display:grid;gap:40px;
+  }
+  @media (min-width:860px){
+    .foot-top{grid-template-columns:1.6fr 1fr 1fr 1fr;gap:48px}
+  }
+
+  .foot-brand p{
+    margin:16px 0 0;font-size:14px;line-height:1.7;
+    color:var(--muted);max-width:38ch;
+  }
+  .foot-mark{display:flex;align-items:center;gap:9px}
+  .foot-mark b{font-size:16px;font-weight:500;letter-spacing:-.2px}
+
+  .foot-col h4{
+    font-family:var(--mono);font-size:10.5px;font-weight:400;
+    letter-spacing:.08em;text-transform:uppercase;color:#6E6C66;
+    margin-bottom:16px;
+  }
+  .foot-col a{
+    display:block;padding:7px 0;font-size:14px;
+    color:var(--muted);text-decoration:none;transition:color 160ms;
+  }
+  .foot-col a:hover{color:var(--ink)}
+
+  .foot-bottom{
+    max-width:1160px;margin:clamp(40px,5vw,64px) auto 0;
+    padding-top:26px;border-top:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:12px 32px;
+    font-size:13px;color:#6E6C66;
+  }
+  .foot-note{margin-left:auto;color:#55534E}
+  @media (max-width:760px){ .foot-note{margin-left:0} }
+
+  .card{padding:0;overflow:hidden;display:flex;flex-direction:column}
+  .card-img{
+    display:block;width:100%;aspect-ratio:4/3;object-fit:cover;
+    filter:saturate(.92);
+  }
+  .card .tag{
+    display:block;margin:clamp(20px,2.2vw,26px) clamp(20px,2.2vw,26px) 12px;
+  }
+  .card h3{margin:0 clamp(20px,2.2vw,26px) 10px}
+  .card p{margin:0 clamp(20px,2.2vw,26px) clamp(22px,2.4vw,28px)}
+
+  .steps{
+    list-style:none;margin-top:clamp(32px,4vw,52px);
+    display:grid;gap:clamp(16px,1.8vw,22px);
+  }
+  @media (min-width:760px){ .steps{grid-template-columns:1fr 1fr} }
+  .steps li{
+    display:flex;flex-direction:column;overflow:hidden;
+    border:1px solid var(--line);border-radius:16px;
+    background:rgba(255,255,255,.015);
+  }
+  .steps img{
+    display:block;width:100%;aspect-ratio:16/10;object-fit:cover;
+    filter:saturate(.94);
+  }
+  .steps .n{
+    display:block;margin:clamp(20px,2.2vw,26px) clamp(20px,2.2vw,26px) 0;
+    font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:#55534E;
+  }
+  .steps h3{
+    margin:10px clamp(20px,2.2vw,26px) 0;
+    font-size:clamp(17px,1.7vw,20px);font-weight:450;letter-spacing:-.3px;
+  }
+  .steps p{
+    margin:10px clamp(20px,2.2vw,26px) clamp(22px,2.4vw,28px);
+    font-size:14.5px;line-height:1.75;color:var(--muted);
+  }
+
+
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <a class="brand" href="/">
+    <svg width="18" height="22" viewBox="0 0 100 121" fill="none">
+      <path fill="#2F7FFF" fill-rule="evenodd"
+        d="M40 0H66C88 0 94 13 94 30C94 48 88 61 78 61H40L4 30ZM36 30L54 15V46Z
+           M40 61H70C92 61 100 74 100 91C100 108 92 121 70 121H42L4 91ZM36 91L54 76V107Z"/>
+    </svg>
+    <span>Bidzy</span>
+  </a>
+
+  <nav class="links">
+    <a href="#how">How it works</a>
+    <a href="#proof">The arithmetic</a>
+    <a href="#limits">Limitations</a>
+    <a href="https://github.com/Kingnanaweb3/bidzy">GitHub</a>
+  </nav>
+
+  <a class="pill" href="/app/index.html">
+    <svg width="13" height="16" viewBox="0 0 100 121" fill="none" aria-hidden="true">
+      <path fill="#0C0C0C" fill-rule="evenodd"
+        d="M40 0H66C88 0 94 13 94 30C94 48 88 61 78 61H40L4 30ZM36 30L54 15V46Z
+           M40 61H70C92 61 100 74 100 91C100 108 92 121 70 121H42L4 91ZM36 91L54 76V107Z"/>
+    </svg>
+    Open Bidzy
+  </a>
+
+  <button class="menu" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M4 7h16M4 12h16M4 17h16"/>
+    </svg>
+  </button>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <h1>The cheapest quote is rarely the cheapest job.</h1>
+
+    <p class="lead">Bidzy emails contractors for you, reads whatever comes back, and works out the real cost.</p>
+
+    <div class="cta">
+      <a class="pill-lg solid" href="/app/index.html">
+        <svg width="14" height="17" viewBox="0 0 100 121" fill="none" aria-hidden="true">
+          <path fill="#0C0C0C" fill-rule="evenodd"
+            d="M40 0H66C88 0 94 13 94 30C94 48 88 61 78 61H40L4 30ZM36 30L54 15V46Z
+               M40 61H70C92 61 100 74 100 91C100 108 92 121 70 121H42L4 91ZM36 91L54 76V107Z"/>
+        </svg>
+        Open Bidzy
+      </a>
+      <a class="pill-lg ghost" href="https://github.com/Kingnanaweb3/bidzy">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.8.1-.7.1-.7 1.2.1 1.9 1.2 1.9 1.2 1.1 1.9 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.4 4.6 18.4 5 18.4 5c.7 1.7.3 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/>
+        </svg>
+        View the code
+      </a>
+    </div>
+
+    <div class="strip">
+      <span class="dollar">$</span>
+      <code id="inbox">bidzy-roofing-8egxzd@agentmail.to</code>
+      <button class="copy" id="copy">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>
+        </svg>
+        <span id="copy-label">Copy</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="band-img">
+    <img src="/hero.png" alt="" loading="eager" />
+  </div>
+  <div class="shot">
+    <div class="shot-bar"><i></i><i></i><i></i></div>
+    <img src="/shot-board.png" alt="The Bidzy price comparison board" loading="lazy" />
+  </div>
+  <p class="shot-note">Five companies asked. Four replied. One of them is lying about the price.</p>
+</section>
+
+<section class="s" id="proof">
+  <div class="wrap">
+    <div class="proof">
+      <div>
+        <b class="num">$4,900</b>
+        <p>of work the cheapest quote left out, priced from what the others charged for it</p>
+      </div>
+      <div>
+        <b class="num">2</b>
+        <p>follow-ups before Bidzy stops emailing and tells you to pick up the phone</p>
+      </div>
+      <div>
+        <b class="num">9 days</b>
+        <p>from the first email to a price you can trust, with nobody watching it</p>
+      </div>
+      <div>
+        <b class="num">0</b>
+        <p>accounts a contractor has to create to be part of this</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="how" style="padding-top:clamp(88px,13vw,170px)">
+  <div class="wrap">
+    <div class="eyebrow"><i></i><span>What it does</span></div>
+    <h2>Three things you would otherwise do yourself, badly, at midnight.</h2>
+
+    <div class="cards">
+      <div class="card">
+        <img class="card-img" src="/card-1.png" alt="" loading="lazy" decoding="async" />
+        <span class="tag">01 — the chase</span>
+        <h3>It keeps asking</h3>
+        <p>Most contractors never reply. Bidzy follows up on day three, again on day seven, then stops and tells you the company needs a phone call. It does this every morning whether or not you have opened the app.</p>
+      </div>
+      <div class="card">
+        <img class="card-img" src="/card-2.png" alt="" loading="lazy" decoding="async" />
+        <span class="tag">02 — the reading</span>
+        <h3>It reads anything they send</h3>
+        <p>A tidy PDF, a scanned page, or “call it fourteen two all in, you sort the skip.” All three come out as the same thing: a total, what is included, and what is not.</p>
+      </div>
+      <div class="card">
+        <img class="card-img" src="/card-3.png" alt="" loading="lazy" decoding="async" />
+        <span class="tag">03 — the memory</span>
+        <h3>It knows which prices died</h3>
+        <p>Change the material and only the quotes that depended on it go stale. Anyone who already priced the new one survives, the ranking updates, and the rest get emailed to ask whether their number still holds.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="arithmetic" style="padding-top:clamp(88px,13vw,170px)">
+  <div class="wrap">
+    <div class="eyebrow"><i></i><span>The arithmetic</span></div>
+    <h2>Crown quoted the lowest number and the highest price.</h2>
+    <p class="sub">Every exclusion is priced using what the other contractors charged for that same work. Nothing here is estimated — it is what this market costs, learned from the quotes on the board.</p>
+
+    <div class="sum">
+      <div class="sum-box">
+        <span class="k">They quoted</span>
+        <span class="v num">$11,900</span>
+        <p class="n">The number in the email. The one you would have picked.</p>
+      </div>
+      <div class="sum-op">+</div>
+      <div class="sum-box warn">
+        <span class="k">Work left out</span>
+        <span class="v num">$4,900</span>
+        <p class="n">Removal and disposal, delivery, skip hire, sales tax. Yours to arrange.</p>
+      </div>
+      <div class="sum-op">=</div>
+      <div class="sum-box good">
+        <span class="k">Real cost</span>
+        <span class="v num">$16,800</span>
+        <p class="n">The dearest quote on the board, and the one that looked cheapest.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="steps" style="padding-top:clamp(88px,13vw,170px)">
+  <div class="wrap">
+    <div class="eyebrow"><i></i><span>How it works</span></div>
+    <h2>You ask once. It works the job for as long as it takes.</h2>
+
+    <ol class="steps">
+      <li>
+        <img src="/step-1.jpg" alt="" loading="lazy" decoding="async" />
+        <span class="n">01</span>
+        <h3>Describe the job once</h3>
+        <p>Roof replacement at 42 Marlow Street, asphalt shingle, full tear-off. Bidzy gives it a real email address of its own.</p>
+      </li>
+      <li>
+        <img src="/step-2.jpg" alt="" loading="lazy" decoding="async" />
+        <span class="n">02</span>
+        <h3>It emails the companies and keeps asking</h3>
+        <p>An ordinary email from an ordinary address. Follow-ups on day three and day seven, sent whether or not anyone is watching.</p>
+      </li>
+      <li>
+        <img src="/step-3.jpg" alt="" loading="lazy" decoding="async" />
+        <span class="n">03</span>
+        <h3>It reads whatever comes back</h3>
+        <p>A PDF, a scanned page, or two lines of text. Each one becomes a total, a list of what is included, and a list of what is not.</p>
+      </li>
+      <li>
+        <img src="/step-4.jpg" alt="" loading="lazy" decoding="async" />
+        <span class="n">04</span>
+        <h3>It tells you what the job really costs</h3>
+        <p>Every exclusion priced from what the others charged, every quote ranked by real cost, and a note when your decision makes one of them worthless.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="s" id="limits" style="padding-top:clamp(88px,13vw,170px)">
+  <div class="wrap">
+    <div class="eyebrow"><i></i><span>What it does not do</span></div>
+    <h2>The parts that are honest about being unfinished.</h2>
+
+    <div class="limits">
+      <div>
+        <b>Licence checks are NYC only</b>
+        <p>It queries the Department of Consumer and Worker Protection register directly. A company not on that register comes back unverified rather than assumed fine.</p>
+      </div>
+      <div>
+        <b>It does not find contractors</b>
+        <p>You bring the companies. Discovery is the obvious next piece and it is not built.</p>
+      </div>
+      <div>
+        <b>The reader is sometimes unsure</b>
+        <p>When it cannot find a price it trusts, it says so and asks you to read the email yourself. That is better than a confident wrong number on a board about honest pricing.</p>
+      </div>
+      <div>
+        <b>One project, no accounts</b>
+        <p>Built in eight days for a hackathon. The architecture supports more; the interface does not yet.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" style="padding-top:clamp(88px,13vw,170px)">
+  <div class="wrap-narrow">
+    <div class="eyebrow"><i></i><span>Questions</span></div>
+    <h2>Reasonable objections.</h2>
+
+    <div class="faq">
+      <details>
+        <summary>Isn't this just a form?</summary>
+        <p>A form requires the contractor to fill it in, which is exactly the thing they will not do. Bidzy sends an ordinary email and reads an ordinary reply. The contractor does nothing different from what they already do fifty times a week.</p>
+      </details>
+      <details>
+        <summary>Where does the “work left out” figure come from?</summary>
+        <p>From the other quotes. If two contractors priced removal at $2,400 and $2,600, then removal costs about $2,500 on this job, and a quote that excludes it is $2,500 cheaper than it looks. Add a third quote and the figure sharpens.</p>
+      </details>
+      <details>
+        <summary>What happens if nobody replies?</summary>
+        <p>Two follow-ups, spaced three and four days apart, sent on a schedule with nobody watching. Then it stops and writes that the company needs a phone call. A third email does not work, and a system that keeps trying forever is just abandoning the job politely.</p>
+      </details>
+      <details>
+        <summary>Does it email real contractors?</summary>
+        <p>In this demo, no. The companies are real names checked against a real register, but the addresses are ones we control. Cold-emailing actual businesses from a hackathon build would be spam.</p>
+      </details>
+      <details>
+        <summary>Why email rather than a portal?</summary>
+        <p>Because every previous attempt was a portal and they all failed on the supply side. A four-person roofing company will not create an account for one job they might not win. Email is the only thing both sides already have.</p>
+      </details>
+      <details>
+        <summary>What is it built on?</summary>
+        <p>Convex for the backend, with quote intelligence and licence compliance as separate isolated components. AgentMail for the inbox. Firecrawl for reading quote documents and querying the city register. Groq for reading plain email into the same shape.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<footer style="margin-top:clamp(88px,13vw,170px)">
+  <div class="foot-top">
+    <div class="foot-brand">
+      <span class="foot-mark">
+        <svg width="18" height="22" viewBox="0 0 100 121" fill="none" aria-hidden="true">
+          <path fill="#2F7FFF" fill-rule="evenodd"
+            d="M40 0H66C88 0 94 13 94 30C94 48 88 61 78 61H40L4 30ZM36 30L54 15V46Z
+               M40 61H70C92 61 100 74 100 91C100 108 92 121 70 121H42L4 91ZM36 91L54 76V107Z"/>
+        </svg>
+        <b>Bidzy</b>
+      </span>
+      <p>An agent that chases contractor quotes over email, reads whatever comes back, and works out which price is actually cheapest.</p>
+
+    </div>
+
+    <div class="foot-col">
+      <h4>The product</h4>
+      <a href="#how">How it works</a>
+      <a href="#arithmetic">The arithmetic</a>
+      <a href="#proof">By the numbers</a>
+      <a href="#limits">What it doesn't do</a>
+    </div>
+
+    <div class="foot-col">
+      <h4>Built with</h4>
+      <a href="https://convex.dev">Convex</a>
+      <a href="https://agentmail.to">AgentMail</a>
+      <a href="https://firecrawl.dev">Firecrawl</a>
+      <a href="https://groq.com">Groq</a>
+    </div>
+
+    <div class="foot-col">
+      <h4>The work</h4>
+      <a href="https://github.com/Kingnanaweb3/bidzy">Source on GitHub</a>
+      <a href="https://github.com/Kingnanaweb3/bidzy/blob/main/hackathon.md">Build log</a>
+      <a href="https://luma.com/convex-allgas-hackathon">The hackathon</a>
+    </div>
+  </div>
+
+  <div class="foot-bottom">
+    <span>Built in eight days for the Convex All Gas Hackathon.</span>
+    <span class="foot-note">None of these contractors installed Bidzy. They just answered an email.</span>
+  </div>
+</footer>
+
+<script>
+  const copy = document.getElementById('copy');
+  const label = document.getElementById('copy-label');
+  copy.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(document.getElementById('inbox').textContent.trim());
+    label.textContent = 'Copied';
+    setTimeout(() => (label.textContent = 'Copy'), 1600);
+  });
+
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('stuck', window.scrollY > 24);
+  onScroll();
+  addEventListener('scroll', onScroll, { passive:true });
+</script>
+</body>
 </html>

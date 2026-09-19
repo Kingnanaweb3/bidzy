@@ -1,6 +1,6 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Card, Chip, IconBox, I, money } from "./ui";
+import { Card, Chip, Dot, IconBox, I, money } from "./ui";
 
 export default function Stats({ jobId }) {
   const d = useQuery(api.jobs.board, { jobId });
@@ -16,6 +16,7 @@ export default function Stats({ jobId }) {
         label="Best real cost"
         value={money(d.lowest)}
         foot={d.lowestParty ?? "no valid price yet"}
+        tone="good"
         accent
       />
       <Stat
@@ -23,6 +24,7 @@ export default function Stats({ jobId }) {
         label="Cheapest on paper"
         value={money(d.headlineLowest)}
         dim
+        tone={d.headlineMisleads ? "warn" : "neutral"}
         foot={d.headlineParty ?? "waiting on prices"}
         chip={
           d.headlineMisleads && gap != null ? (
@@ -32,11 +34,12 @@ export default function Stats({ jobId }) {
       />
       <Stat
         icon={I.mail}
+        tone={d.staleCount > 0 ? "warn" : "info"}
         label="Replies"
         value={
           <>
             {d.quotedCount}
-            <span className="text-[#5A5A5A]">/{d.invitedCount}</span>
+            <span className="text-[#6E6C66]">/{d.invitedCount}</span>
           </>
         }
         foot={
@@ -56,22 +59,23 @@ export default function Stats({ jobId }) {
   );
 }
 
-function Stat({ icon, label, value, foot, chip, accent, dim }) {
+function Stat({ icon, label, value, foot, chip, accent, dim, tone }) {
   return (
     <Card className="p-5 sm:p-6 flex flex-col">
       <div className="h-9 flex items-center gap-3 mb-5">
         <IconBox>{icon}</IconBox>
-        <span className="text-[12.5px] sm:text-[13.5px] font-semibold">{label}</span>
+        <span className="text-[length:var(--step--1)] sm:text-[length:var(--step-0)] font-semibold">{label}</span>
+        {tone && <span className="ml-auto"><Dot tone={tone} /></span>}
       </div>
       <p
-        className={`num text-[30px] font-bold tracking-tight leading-9 ${
-          accent ? "text-[#4ADE80]" : dim ? "text-[#A1A1A1]" : "text-[#EDEDED]"
+        className={`num text-[length:var(--step-5)] font-semibold leading-9 ${
+          accent ? "text-[#4ADE80]" : dim ? "text-[#B5B3AA]" : "text-[#FBFBF7]"
         }`}
       >
         {value}
       </p>
       <div className="mt-3 space-y-2">
-        <div className="h-[18px] text-[11.5px] sm:text-[12.5px] text-[#A1A1A1] truncate">
+        <div className="h-[18px] text-[length:var(--step--2)] sm:text-[length:var(--step--1)] text-[#B5B3AA] truncate">
           {foot}
         </div>
         <div className="h-[22px] flex items-center">{chip}</div>
